@@ -126,7 +126,7 @@ async function chatOnce(ref, messages, opts = {}) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 300000);
   try {
-    const body = { model: r.modelId, messages, temperature: opts.temperature ?? 0.2, stream: false };
+    const body = { model: r.modelId, messages, temperature: opts.temperature ?? r.temperature, stream: false };
     if (opts.tools) body.tools = opts.tools;
     const resp = await fetch(r.baseURL.replace(/\/$/, "") + "/chat/completions", {
       method: "POST", signal: ctrl.signal,
