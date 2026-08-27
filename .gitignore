@@ -1,0 +1,8 @@
+.env
+results/*.json
+report.html
+node_modules/
+
+scripts/run-local.ps1
+pilot.log
+scripts/run-pilot.bat

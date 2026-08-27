@@ -1,0 +1,15 @@
+{
+  "id": "14-agent-demo",
+  "title": "分析示例 Agent 循环",
+  "category": "分析",
+  "tier": 2,
+  "root": "samples",
+  "prompt": "你是只读代码分析助手。在示例代码库中：AgentLoopDemo 的最大轮数是多少？首轮工具选择策略是什么？拿到工具结果之后的策略是什么？",
+  "gold": [
+    "6",
+    "required",
+    "auto"
+  ],
+  "minGold": 3,
+  "rubric": "6 轮、首轮 required、之后 auto"
+}

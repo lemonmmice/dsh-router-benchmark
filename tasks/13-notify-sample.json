@@ -1,0 +1,15 @@
+{
+  "id": "13-notify-sample",
+  "title": "评审通知服务的重连逻辑",
+  "category": "评审",
+  "tier": 3,
+  "root": "samples",
+  "prompt": "你是独立代码评审专家。评审示例代码库中 NotificationService 的重连与消息处理逻辑：指出至少两个风险点（重试策略、缓存更新等）并给改进建议，不要改代码。",
+  "gold": [
+    "指数退避",
+    "重试",
+    "缓存"
+  ],
+  "minGold": 2,
+  "rubric": "指数退避/重试上限/缓存更新风险"
+}

@@ -1,0 +1,116 @@
+{
+  "note": "价格单位：元/百万 token（输入, 输出）。deepseek/gpt 价格按 new-api 中转站公开比率换算（quota_per_unit=500000, 汇率7.3, 1元≈68493 quota）；kimi 为官方美元参考价×7.25；minimax 为官方价；mimo 2026-05 降价后无静态价格页，计 unknown。跑之前可按账单核对修正。",
+  "providers": {
+    "deepseek": {
+      "displayName": "DeepSeek 中转",
+      "baseURL": "https://<your-deepseek-relay>/v1",
+      "apiKeyEnv": "DEEPSEEK_RELAY_API_KEY",
+      "models": {
+        "flash": "deepseek-v4-flash",
+        "pro": "deepseek-v4-pro"
+      },
+      "prices": {
+        "flash": {
+          "in": 1.04,
+          "out": 2.09
+        },
+        "pro": {
+          "in": 3.13,
+          "out": 6.26
+        }
+      }
+    },
+    "xiaomi": {
+      "displayName": "小米 MiMo",
+      "baseURL": "https://api.xiaomimimo.com/v1",
+      "apiKeyEnv": "XIAOMI_API_KEY",
+      "models": {
+        "mimo": "mimo-v2.5-pro"
+      },
+      "prices": {
+        "mimo": {
+          "in": null,
+          "out": null
+        }
+      }
+    },
+    "moonshot": {
+      "displayName": "月之暗面 Kimi",
+      "baseURL": "https://api.moonshot.cn/v1",
+      "apiKeyEnv": "MOONSHOTAI_CN_API_KEY",
+      "models": {
+        "kimi": "kimi-k3"
+      },
+      "prices": {
+        "kimi": {
+          "in": 21.75,
+          "out": 108.75
+        }
+      }
+    },
+    "openai": {
+      "displayName": "GPT-5.6 Sol（中转）",
+      "baseURL": "https://<your-openai-relay>/v1",
+      "apiKeyEnv": "OPENAI_API_KEY",
+      "models": {
+        "gpt": "gpt-5.6-sol"
+      },
+      "prices": {
+        "gpt": {
+          "in": 5.84,
+          "out": 46.72
+        }
+      }
+    },
+    "minimax": {
+      "displayName": "MiniMax",
+      "baseURL": "https://api.minimax.chat/v1",
+      "apiKeyEnv": "MINIMAX_CN_API_KEY",
+      "models": {
+        "minimax": "MiniMax-M3"
+      },
+      "prices": {
+        "minimax": {
+          "in": 0.3,
+          "out": 1.2
+        }
+      }
+    }
+  },
+  "routing": {
+    "tier1": {
+      "models": [
+        "deepseek.flash"
+      ]
+    },
+    "tier2": {
+      "models": [
+        "deepseek.pro"
+      ]
+    },
+    "tier3": {
+      "models": [
+        "deepseek.pro",
+        "xiaomi.mimo",
+        "moonshot.kimi",
+        "openai.gpt"
+      ],
+      "synthesizeWith": "deepseek.pro"
+    }
+  },
+  "baselines": {
+    "flash-only": {
+      "models": [
+        "deepseek.flash"
+      ]
+    },
+    "pro-only": {
+      "models": [
+        "deepseek.pro"
+      ]
+    }
+  },
+  "judge": {
+    "defaultMinGold": 0.6
+  }
+}

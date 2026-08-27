@@ -1,0 +1,15 @@
+{
+  "id": "11-timer-sample",
+  "title": "定位定时器服务的间隔与生命周期",
+  "category": "检索",
+  "tier": 1,
+  "root": "samples",
+  "prompt": "你是只读代码检索助手。在示例代码库中：TimerService 默认的定时器间隔是多少毫秒？它提供哪些公开方法？输出事实与文件:行号。",
+  "gold": [
+    "5000",
+    "Start",
+    "Stop"
+  ],
+  "minGold": 2,
+  "rubric": "间隔 5000ms + Start/Stop"
+}

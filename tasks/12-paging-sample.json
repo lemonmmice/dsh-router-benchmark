@@ -1,0 +1,15 @@
+{
+  "id": "12-paging-sample",
+  "title": "分析分页服务的性能策略",
+  "category": "分析",
+  "tier": 2,
+  "root": "samples",
+  "prompt": "你是只读代码分析助手。在示例代码库中：PagingService 用哪两种手段避免大结果集排序？历史记录日期范围默认用什么规则？",
+  "gold": [
+    "UNION ALL",
+    "分片",
+    "当天"
+  ],
+  "minGold": 2,
+  "rubric": "UNION ALL+分片 与 当天日期"
+}
