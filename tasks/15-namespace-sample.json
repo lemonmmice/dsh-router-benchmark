@@ -1,0 +1,16 @@
+{
+  "id": "15-namespace-sample",
+  "title": "梳理示例代码库的命名空间结构",
+  "category": "检索",
+  "tier": 2,
+  "root": "samples",
+  "prompt": "你是只读代码检索助手。在示例代码库中：存在哪几个命名空间（namespace）？每个命名空间里有什么类？输出清单。",
+  "gold": [
+    "DemoApp.Timers",
+    "DemoApp.Data",
+    "DemoApp.Push",
+    "DemoApp.Agent"
+  ],
+  "minGold": 3,
+  "rubric": "四个命名空间至少命中三个"
+}

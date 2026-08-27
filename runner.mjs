@@ -23,7 +23,11 @@ function resolve(ref) {
   const pc = cfg.providers[p];
   if (!pc || !pc.models[m]) throw new Error("未知模型引用: " + ref);
   const price = (pc.prices && pc.prices[m]) || { in: null, out: null };
-  return { provider: p, modelId: pc.models[m], baseURL: pc.baseURL, apiKeyEnv: pc.apiKeyEnv, price, display: pc.displayName + "/" + pc.models[m] };
+  const baseURL = (pc.baseURLEnv && process.env[pc.baseURLEnv]) || pc.baseURL;
+  const modelDef = pc.models[m];
+  const modelId = typeof modelDef === "string" ? modelDef : modelDef.id;
+  const temperature = typeof modelDef === "string" ? 0.2 : (modelDef.temperature ?? 0.2);
+  return { provider: p, modelId, baseURL, apiKeyEnv: pc.apiKeyEnv, price, temperature, display: pc.displayName + "/" + modelId };
 }
 function apiKey(ref) {
   const r = resolve(ref);

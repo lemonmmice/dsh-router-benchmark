@@ -18,7 +18,8 @@
           "in": 3.13,
           "out": 6.26
         }
-      }
+      },
+      "baseURLEnv": "DSH_BENCH_BASEURL_DEEPSEEK"
     },
     "xiaomi": {
       "displayName": "小米 MiMo",
@@ -32,21 +33,26 @@
           "in": null,
           "out": null
         }
-      }
+      },
+      "baseURLEnv": "DSH_BENCH_BASEURL_XIAOMI"
     },
     "moonshot": {
       "displayName": "月之暗面 Kimi",
       "baseURL": "https://api.moonshot.cn/v1",
       "apiKeyEnv": "MOONSHOTAI_CN_API_KEY",
       "models": {
-        "kimi": "kimi-k3"
+        "kimi": {
+          "id": "kimi-k3",
+          "temperature": 1
+        }
       },
       "prices": {
         "kimi": {
           "in": 21.75,
           "out": 108.75
         }
-      }
+      },
+      "baseURLEnv": "DSH_BENCH_BASEURL_MOONSHOT"
     },
     "openai": {
       "displayName": "GPT-5.6 Sol（中转）",
@@ -60,7 +66,10 @@
           "in": 5.84,
           "out": 46.72
         }
-      }
+      },
+      "available": false,
+      "note": "new-api codex 分组仅支持标准 Codex 客户端（responses 协议+客户端指纹校验），chat/completions 协议不可用，评测暂不启用 GPT 评审专家",
+      "baseURLEnv": "DSH_BENCH_BASEURL_OPENAI"
     },
     "minimax": {
       "displayName": "MiniMax",
@@ -74,7 +83,8 @@
           "in": 0.3,
           "out": 1.2
         }
-      }
+      },
+      "baseURLEnv": "DSH_BENCH_BASEURL_MINIMAX"
     }
   },
   "routing": {
@@ -92,8 +102,7 @@
       "models": [
         "deepseek.pro",
         "xiaomi.mimo",
-        "moonshot.kimi",
-        "openai.gpt"
+        "moonshot.kimi"
       ],
       "synthesizeWith": "deepseek.pro"
     }
