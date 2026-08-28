@@ -1,0 +1,1666 @@
+{
+  "generatedAt": "2026-08-28T02:49:30.657Z",
+  "modes": [
+    "flash-only",
+    "pro-only",
+    "routed"
+  ],
+  "tasks": [
+    {
+      "taskId": "timer-storm",
+      "title": "定时轮询风险评审",
+      "category": "评审",
+      "tier": 3,
+      "mode": "flash-only",
+      "pass": false,
+      "score": 0,
+      "hits": [],
+      "missed": [
+        "定时器风暴",
+        "事件驱动",
+        "按需刷新",
+        "重复请求"
+      ],
+      "tokensIn": 7316,
+      "tokensOut": 597,
+      "cost": 0.0089,
+      "ms": 2005,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-flash"
+      ],
+      "detail": [],
+      "text": "1: using System;\n2: using System.Collections.Generic;\n3: \n4: namespace DemoApp.Config\n5: {\n6:     // 配置服务：支持 JSON 文件 + 环境变量覆盖\n7:     public sealed class ConfigService\n8:     {\n9:         private readonly Dictionary<string, string> _values = new();\n10:         public const string DefaultConfigFile = \"appsettings.json\";\n11: \n12:         public ConfigService LoadFromFile(string path = DefaultConfigFile)\n13:         {\n14:             // 读取 JSON 配置写入 _values\n15:             return this;\n16:         }\n17: \n18:         public ConfigService ApplyEnvironmentOverrides()\n19:         {\n20:             // 环境变量 APP_XXX 覆盖同名配置项\n21:             return this;\n22:         }\n23: \n24:         public string Get(string key, string fallback = \"\") =>\n25:             _values.TryGetValue(key, out var v) ? v : fallback;\n26: \n27:         public bool GetBool(string key, bool fallback = false) =>\n28:             bool.TryParse(Get(key), out var v) ? v : fallback;\n29: \n30:         public int GetInt(string key, int fallback = 0) =>\n31:             int.TryParse(Get(key), out var v) ? v : fallback;\n32:     }\n33: }\n34: "
+    },
+    {
+      "taskId": "11-timer-sample",
+      "title": "定位定时器服务的间隔与生命周期",
+      "category": "检索",
+      "tier": 1,
+      "mode": "flash-only",
+      "pass": true,
+      "score": 1,
+      "hits": [
+        "5000",
+        "Start",
+        "Stop"
+      ],
+      "missed": [],
+      "tokensIn": 2657,
+      "tokensOut": 361,
+      "cost": 0.0035,
+      "ms": 1650,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-flash"
+      ],
+      "detail": [],
+      "text": "## 结论\n\n**TimerService 默认定时器间隔：5000 毫秒**（即 5 秒）。\n\n**公开方法/成员：**\n- 构造函数 `TimerService(int intervalMs = 5000)` — 可通过参数自定义间隔（毫秒）\n- 事件 `Tick`（`EventHandler?`）\n- `void Start()` — 启动定时器\n- `void Stop()` — 停止定时器\n- `bool IsRunning`（属性）— 是否运行中\n- `void Dispose()` — 释放资源（实现 `IDisposable`）\n\n## 证据\n\n- `TimerService.cs:11` — `public TimerService(int intervalMs = 5000)`，默认间隔 5000ms\n- `TimerService.cs:13` — `Interval = TimeSpan.FromMilliseconds(intervalMs)`\n- `TimerService.cs:17` — `public event EventHandler? Tick;`\n- `TimerService.cs:19-21` — `Start()`、`Stop()`、`IsRunning`\n- `TimerService.cs:25-29` — `Dispose()` 停止定时器并解绑 Tick 事件"
+    },
+    {
+      "taskId": "12-paging-sample",
+      "title": "分析分页服务的性能策略",
+      "category": "分析",
+      "tier": 2,
+      "mode": "flash-only",
+      "pass": false,
+      "score": 0.33,
+      "hits": [
+        "当天"
+      ],
+      "missed": [
+        "UNION ALL",
+        "分片"
+      ],
+      "tokensIn": 4325,
+      "tokensOut": 471,
+      "cost": 0.0055,
+      "ms": 2187,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-flash"
+      ],
+      "detail": [],
+      "text": "PagingService.cs:8: public sealed class PagingService\nPagingService.cs:10: // 历史记录默认按\"当天日期\"而非当前时刻过滤（避免跨日边界漏数据）"
+    },
+    {
+      "taskId": "13-notify-sample",
+      "title": "评审通知服务的重连逻辑",
+      "category": "评审",
+      "tier": 3,
+      "mode": "flash-only",
+      "pass": true,
+      "score": 0.67,
+      "hits": [
+        "重试",
+        "缓存"
+      ],
+      "missed": [
+        "指数退避"
+      ],
+      "tokensIn": 6786,
+      "tokensOut": 2534,
+      "cost": 0.0124,
+      "ms": 18747,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-flash"
+      ],
+      "detail": [],
+      "text": "## 评审结论\n\n`NotificationService.cs` 的重连与消息处理逻辑存在多个风险点，核心问题是\"重连逻辑形同虚设\"和\"缓存更新非原子\"。\n\n---\n\n### 风险点 1：重连/退避策略逻辑错误，几乎必然\"假成功\"\n\n**证据**：`NotificationService.cs:18-31`\n\n```csharp\nwhile (!IsConnected && _retryCount < MaxRetry)\n{\n    try\n    {\n        await Task.Delay(...);   // 先退避\n        IsConnected = true;      // 无条件置为已连接\n        _retryCount = 0;\n    }\n    catch { _retryCount++; }\n}\n```\n\n问题：\n- **没有真实的连接动作**：循环体内只有 `Task.Delay`，没有任何发起连接/校验连接的代码，`try` 块内唯一可能抛异常的是 `Delay`。因此第一次循环结束 `IsConnected` 就被无条件置 `true`，`MaxRetry`（NotificationService.cs:10）与 `catch` 分支实际永远走不到——重连是\"假重连\"。\n- **退避时序颠倒**：先 `Delay` 再\"尝试\"，第 1 次就等 1s（`2^0`，NotificationService.cs:22），真正的首次连接反而被无谓推迟；且无最大退避上限、无抖动（jitter）、无 `CancellationToken`，无法取消。\n- **重试耗尽后静默失败**：循环退出时既不抛异常也不暴露失败状态，调用方无法区分\"连接成功\"与\"已达上限放弃\"。\n- 同类问题在 `WebSocketClient.cs:7` 注释声称\"断线自动重连\"，但 `ConnectionClosed`（WebSocketClient.cs:40）触发后无任何重连订阅逻辑，且 `ConnectAsync`（WebSocketClient.cs:18-21）用 `CancellationToken.None` 无超时控制。\n\n**建议**：循环内先发起真实连接（如真正的 WebSocket/SignalR 握手），仅在实际失败时进入退避等待；退避应带随机抖动、最大封顶、支持取消；重试耗尽后抛异常或返回明确失败状态。\n\n---\n\n### 风险点 2：未读数缓存更新为非原子\"读-改-写\"，存在丢更新\n\n**证据**：`NotificationService.cs:35-36` + `NotificationService.cs:41-46`\n\n```csharp\nvar cache = Cache.GetUnreadCount() + 1;\nCache.SetUnreadCount(cache);\n```\n\n- `Cache._unread` 是共享静态 `int`（NotificationService.cs:43），而 `OnMessage` 在多线程消息接收场景（如 WebSocketClient.cs:38 的事件分发、重连后的消息补发）下并发调用时，\"读取→+1→写回\"三步并非原子操作，会产生**丢失更新**，未读数被低估。\n- `Cache` 静态类自身也无任何同步原语（无锁/无 `Interlocked`）。\n\n**建议**：改用 `Interlocked.Increment(ref Cache._unread)` 原子递增，或对读写加锁；若未读数后续需要支持服务端同步，建议设计成可覆盖/可对账的接口。\n\n---\n\n### 附加风险点 3：断线期间消息丢失，未读数与服务端永久不一致\n\n**证据**：`NotificationService.cs:16-31`（重连仅置位标志）+ `OnMessage`（NotificationService.cs:33-38，仅本地 `+1`）\n\n- 重连成功路径（NotificationService.cs:23-24）没有执行任何**消息补拉/水位对账**；断线窗口期到达的消息在 `IsConnected=true` 后不会被回放，本地未读数只会继续累加，与服务端真实值偏差无法自愈。\n- 且 `OnMessage` 不校验 `json` 合法性（NotificationService.cs:33），畸形消息也会计入未读。\n\n**建议**：重连成功后主动向服务端同步未读数或拉取断线期间的消息（增量/快照对账）；`OnMessage` 增加消息格式校验。\n\n---\n\n**参考文件**：`NotificationService.cs`（核心）、`WebSo"
+    },
+    {
+      "taskId": "14-agent-demo",
+      "title": "分析示例 Agent 循环",
+      "category": "分析",
+      "tier": 2,
+      "mode": "flash-only",
+      "pass": true,
+      "score": 1,
+      "hits": [
+        "6",
+        "required",
+        "auto"
+      ],
+      "missed": [],
+      "tokensIn": 2889,
+      "tokensOut": 427,
+      "cost": 0.0039,
+      "ms": 2504,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-flash"
+      ],
+      "detail": [],
+      "text": "## 结论\n\n**AgentLoopDemo**（`AgentLoopDemo.cs`）：\n\n1. **最大轮数**：`6`（常量 `MaxRounds = 6`）\n2. **首轮工具选择策略**：`required`，强制模型必须发起工具调用（`toolChoice = \"required\"`）\n3. **拿到工具结果之后的策略**：切换为 `auto`，由模型自主决定是否继续调用工具；若模型本轮返回工具调用则继续执行工具并进入下一轮，若不再调用工具则直接返回 `reply[\"content\"]` 作为最终回答；达到轮数上限返回 `\"(达到轮次上限)\"`\n\n## 证据路径\n\n- `AgentLoopDemo.cs:11` — `private const int MaxRounds = 6;`\n- `AgentLoopDemo.cs:24` — `string toolChoice = hasToolResult ? \"auto\" : \"required\"; // 首轮强制工具调用`\n- `AgentLoopDemo.cs:21` — `bool hasToolResult = false;`（首轮进入循环时仍为 false）\n- `AgentLoopDemo.cs:28-42` — 有 `tool_calls` 则执行工具并 `hasToolResult = true` 后 `continue`；无则返回 `reply[\"content\"]`\n- `AgentLoopDemo.cs:45` — 循环耗尽后返回 `\"(达到轮次上限)\"`"
+    },
+    {
+      "taskId": "15-namespace-sample",
+      "title": "梳理示例代码库的命名空间结构",
+      "category": "检索",
+      "tier": 2,
+      "mode": "flash-only",
+      "pass": true,
+      "score": 1,
+      "hits": [
+        "DemoApp.Timers",
+        "DemoApp.Data",
+        "DemoApp.Push",
+        "DemoApp.Agent"
+      ],
+      "missed": [],
+      "tokensIn": 5651,
+      "tokensOut": 1295,
+      "cost": 0.0086,
+      "ms": 4590,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-flash"
+      ],
+      "detail": [],
+      "text": "## 命名空间与类清单\n\n仓库共有 **11 个命名空间**，均以 `DemoApp` 为根：\n\n| 命名空间 | 类 | 位置 |\n|---|---|---|\n| `DemoApp.Agent` | `AgentLoopDemo` (sealed) | AgentLoopDemo.cs:6, 9 |\n| `DemoApp.Caching` | `CacheService` (sealed) + 嵌套 `CacheEntry` (private) | CacheService.cs:4, 7, 28 |\n| `DemoApp.Charts` | `ChartRenderer` (sealed) | ChartRenderer.cs:4, 7 |\n| `DemoApp.Config` | `ConfigService` (sealed) | ConfigService.cs:4, 7 |\n| `DemoApp.Data` | `PagingService` (sealed) | PagingService.cs:5, 8 |\n| `DemoApp.Logging` | `LogService` (static) | LogService.cs:3, 6 |\n| `DemoApp.Network` | `WebSocketClient` (sealed, IDisposable) | WebSocketClient.cs:4, 7 |\n| `DemoApp.Orders` | `OrderService` (sealed) + `Order`；另含嵌套枚举 `OrderStatus` | OrderService.cs:4, 7, 40, 12 |\n| `DemoApp.Push` | `NotificationService` (sealed) + `Cache` (internal static) | NotificationService.cs:4, 7, 41 |\n| `DemoApp.Resilience` | `RetryPolicy` (sealed) | RetryPolicy.cs:4, 7 |\n| `DemoApp.Timers` | `TimerService` (sealed, IDisposable) | TimerService.cs:4, 7 |\n\n补充说明：\n- 嵌套类 `CacheEntry`（CacheService.cs:28）、`Cache`（NotificationService.cs:41）随外层类同属其所在命名空间。\n- `OrderStatus` 是定义在 `OrderService` 内部的枚举（OrderService.cs:12）。\n\n证据：namespace 声明见各文件行号（grep 结果一致）；类声明见 grep `class ` 结果及 read_file 核对。"
+    },
+    {
+      "taskId": "16-order-service",
+      "title": "定位订单服务的方法与状态",
+      "category": "检索",
+      "tier": 1,
+      "mode": "flash-only",
+      "pass": true,
+      "score": 1,
+      "hits": [
+        "CreateOrder",
+        "SubmitOrder",
+        "CancelOrder",
+        "OrderStatus"
+      ],
+      "missed": [],
+      "tokensIn": 3229,
+      "tokensOut": 333,
+      "cost": 0.0041,
+      "ms": 1681,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-flash"
+      ],
+      "detail": [],
+      "text": "## 结论\n\n**OrderService 公开方法（OrderService.cs）**\n\n| 方法 | 位置 |\n|---|---|\n| `CreateOrder(string customerId)` → Order | OrderService.cs:14 |\n| `SubmitOrder(Guid orderId)` → bool | OrderService.cs:21 |\n| `CancelOrder(Guid orderId)` → bool | OrderService.cs:29 |\n| `GetOrders(string customerId)` → List\\<Order\\> | OrderService.cs:37 |\n\n**订单状态枚举 OrderStatus 值（OrderService.cs:12）**\n`Draft`、`Submitted`、`Paid`、`Cancelled`\n\n**证据路径**\n- OrderService 类声明：OrderService.cs:7\n- 枚举定义：OrderService.cs:12\n- Order.Status 属性使用该枚举：OrderService.cs:44"
+    },
+    {
+      "taskId": "17-config-source",
+      "title": "配置服务的加载来源",
+      "category": "检索",
+      "tier": 1,
+      "mode": "flash-only",
+      "pass": true,
+      "score": 1,
+      "hits": [
+        "appsettings.json",
+        "环境变量"
+      ],
+      "missed": [],
+      "tokensIn": 2705,
+      "tokensOut": 274,
+      "cost": 0.0034,
+      "ms": 1664,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-flash"
+      ],
+      "detail": [],
+      "text": "**结论：** ConfigService 从两个来源加载配置：① JSON 配置文件（默认 `appsettings.json`）；② 环境变量覆盖（`APP_XXX` 前缀项）。\n\n**证据：**\n- 默认配置文件名：`ConfigService.cs:10` — `public const string DefaultConfigFile = \"appsettings.json\";`\n- 文件加载来源：`ConfigService.cs:12` — `LoadFromFile(string path = DefaultConfigFile)`（注释 \"读取 JSON 配置写入 _values\"）\n- 环境变量覆盖来源：`ConfigService.cs:18-20` — `ApplyEnvironmentOverrides()`（注释 \"环境变量 APP_XXX 覆盖同名配置项\"）"
+    },
+    {
+      "taskId": "18-chart-render",
+      "title": "图表渲染器的性能常量",
+      "category": "检索",
+      "tier": 1,
+      "mode": "flash-only",
+      "pass": true,
+      "score": 1,
+      "hits": [
+        "MaxPointsPerFrame",
+        "DownsampleThreshold",
+        "50000"
+      ],
+      "missed": [],
+      "tokensIn": 2653,
+      "tokensOut": 264,
+      "cost": 0.0033,
+      "ms": 1523,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-flash"
+      ],
+      "detail": [],
+      "text": "**结论**：`ChartRenderer` 定义了 2 个性能相关常量：\n\n- `MaxPointsPerFrame` = **10000**（每帧最多渲染点数）\n- `DownsampleThreshold` = **50000**（触发抽稀采样的数据量阈值）\n\n**证据路径**：\n- ChartRenderer.cs:9 — `public const int MaxPointsPerFrame = 10000;`\n- ChartRenderer.cs:10 — `public const int DownsampleThreshold = 50000;`\n- ChartRenderer.cs:18 — 当点数超过 `DownsampleThreshold` 时调用 `Downsample()`（每 2 点取 1，ChartRenderer.cs:27-31），与常量对应。"
+    },
+    {
+      "taskId": "19-log-level",
+      "title": "日志服务的级别与滚动",
+      "category": "检索",
+      "tier": 1,
+      "mode": "flash-only",
+      "pass": true,
+      "score": 1,
+      "hits": [
+        "Debug",
+        "Info",
+        "Warn",
+        "Error",
+        "MaxLogFileSizeBytes"
+      ],
+      "missed": [],
+      "tokensIn": 2621,
+      "tokensOut": 284,
+      "cost": 0.0033,
+      "ms": 1776,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-flash"
+      ],
+      "detail": [],
+      "text": "**结论：**\n- 日志级别：4 个（Debug、Info、Warn、Error）\n- 默认最小级别：Info\n- 日志文件滚动大小：10 MB（10 * 1024 * 1024 字节）\n\n**证据路径：**\n- LogService.cs:8 — `public enum LogLevel { Debug, Info, Warn, Error }`\n- LogService.cs:10 — `public static LogLevel MinLevel { get; set; } = LogLevel.Info;`\n- LogService.cs:11 — `public const int MaxLogFileSizeBytes = 10 * 1024 * 1024; // 10MB 滚动`"
+    },
+    {
+      "taskId": "20-retry-policy",
+      "title": "重试策略的参数",
+      "category": "检索",
+      "tier": 1,
+      "mode": "flash-only",
+      "pass": true,
+      "score": 1,
+      "hits": [
+        "MaxRetryCount",
+        "3",
+        "BaseDelayMs",
+        "200"
+      ],
+      "missed": [],
+      "tokensIn": 2627,
+      "tokensOut": 312,
+      "cost": 0.0034,
+      "ms": 1985,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-flash"
+      ],
+      "detail": [],
+      "text": "**结论**\n- 最大重试次数：3（`MaxRetryCount = 3`，`RetryPolicy.cs:9`）\n- 基础延迟：200ms（`BaseDelayMs = 200`，`RetryPolicy.cs:10`）\n- 退避策略：指数退避（Exponential Backoff），延迟 = `BaseDelayMs * 2^(attempt-1)`，即第 1 次 200ms、第 2 次 400ms、第 3 次 800ms（`RetryPolicy.cs:24`）\n\n证据：`RetryPolicy.cs:7-29`（`ExecuteAsync` 中 `attempt < MaxRetryCount` 控制重试次数，`Task.Delay` 按指数公式递增等待）。"
+    },
+    {
+      "taskId": "21-cache-service",
+      "title": "缓存服务的键规则",
+      "category": "检索",
+      "tier": 1,
+      "mode": "flash-only",
+      "pass": true,
+      "score": 1,
+      "hits": [
+        "app:cache:",
+        "DefaultTtlSeconds",
+        "ConcurrentDictionary"
+      ],
+      "missed": [],
+      "tokensIn": 2791,
+      "tokensOut": 289,
+      "cost": 0.0035,
+      "ms": 1628,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-flash"
+      ],
+      "detail": [],
+      "text": "结论：\n\n- **缓存键前缀**：`\"app:cache:\"`（CacheService.cs:10）\n- **默认 TTL**：60 秒（`DefaultTtlSeconds = 60`，CacheService.cs:9；在 `GetOrAdd` 中作为默认参数，CacheService.cs:14）\n- **数据结构**：`ConcurrentDictionary<string, CacheEntry>`（CacheService.cs:12），值 `CacheEntry` 含 `Value`（object）和 `ExpiresAt`（DateTime），通过 `IsExpired` 判断是否过期（CacheService.cs:28-32）\n\n证据路径：CacheService.cs:9, 10, 12, 14, 22, 28-32。"
+    },
+    {
+      "taskId": "22-ws-client",
+      "title": "WebSocket 客户端参数",
+      "category": "检索",
+      "tier": 1,
+      "mode": "flash-only",
+      "pass": true,
+      "score": 1,
+      "hits": [
+        "ReconnectIntervalMs",
+        "3000",
+        "ReceiveBufferSize",
+        "8192"
+      ],
+      "missed": [],
+      "tokensIn": 2663,
+      "tokensOut": 216,
+      "cost": 0.0032,
+      "ms": 1141,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-flash"
+      ],
+      "detail": [],
+      "text": "**WebSocketClient 的配置参数**（WebSocketClient.cs:9-10）：\n- **重连间隔**：`ReconnectIntervalMs = 3000`（3000 毫秒）\n- **接收缓冲区大小**：`ReceiveBufferSize = 8192`（字节）\n\n证据：WebSocketClient.cs:9 定义 `ReconnectIntervalMs`，第 10 行定义 `ReceiveBufferSize`；缓冲区在 WebSocketClient.cs:33 实际分配使用。"
+    },
+    {
+      "taskId": "23-event-list",
+      "title": "查找全部事件定义",
+      "category": "检索",
+      "tier": 1,
+      "mode": "flash-only",
+      "pass": true,
+      "score": 1,
+      "hits": [
+        "TimerService",
+        "NotificationService",
+        "ChartRenderer",
+        "WebSocketClient"
+      ],
+      "missed": [],
+      "tokensIn": 4336,
+      "tokensOut": 626,
+      "cost": 0.0058,
+      "ms": 2598,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-flash"
+      ],
+      "detail": [],
+      "text": "已找出全部 4 个类中声明的 event（共 5 个）：\n\n| 类名 | 事件名 | 签名 | 位置 |\n|---|---|---|---|\n| `ChartRenderer` | `RenderRequested` | `EventHandler?` | ChartRenderer.cs:13 |\n| `NotificationService` | `MessageReceived` | `EventHandler<string>?` | NotificationService.cs:12 |\n| `TimerService` | `Tick` | `EventHandler?` | TimerService.cs:17 |\n| `WebSocketClient` | `MessageReceived` | `EventHandler<string>?` | WebSocketClient.cs:13 |\n| `WebSocketClient` | `ConnectionClosed` | `EventHandler?` | WebSocketClient.cs:14 |\n\n证据路径（均为 `public event` 声明）：\n- ChartRenderer.cs:13 `public event EventHandler? RenderRequested;`\n- NotificationService.cs:12 `public event EventHandler<string>? MessageReceived;`\n- TimerService.cs:17 `public event EventHandler? Tick;`\n- WebSocketClient.cs:13 `public event EventHandler<string>? MessageReceived;`\n- WebSocketClient.cs:14 `public event EventHandler? ConnectionClosed;`\n\n注：代码库中 `event` 关键字出现处共 6 个，其中仅上述 5 处为声明；TimerService.cs:14 的 `_timer.Tick += OnTick` 是订阅，非声明。"
+    },
+    {
+      "taskId": "24-order-const",
+      "title": "定位订单服务的常量",
+      "category": "检索",
+      "tier": 1,
+      "mode": "flash-only",
+      "pass": true,
+      "score": 1,
+      "hits": [
+        "MaxItemsPerOrder",
+        "20"
+      ],
+      "missed": [],
+      "tokensIn": 2817,
+      "tokensOut": 213,
+      "cost": 0.0034,
+      "ms": 1777,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-flash"
+      ],
+      "detail": [],
+      "text": "**结论**：常量名为 `MaxItemsPerOrder`，值为 `20`。\n\n**证据路径**：`OrderService.cs:10` — `public const int MaxItemsPerOrder = 20;`（位于 `DemoApp.Orders` 命名空间的 `OrderService` 类内）"
+    },
+    {
+      "taskId": "25-sealed-static",
+      "title": "查找 sealed 与 static 类",
+      "category": "检索",
+      "tier": 1,
+      "mode": "flash-only",
+      "pass": true,
+      "score": 1,
+      "hits": [
+        "sealed class",
+        "sealed 类",
+        "static class",
+        "static 类"
+      ],
+      "missed": [],
+      "tokensIn": 3417,
+      "tokensOut": 549,
+      "cost": 0.0047,
+      "ms": 2540,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-flash"
+      ],
+      "detail": [],
+      "text": "## 结论\n\n**sealed 类（11 个）：**\n\n| 类 | 位置 |\n|---|---|\n| `AgentLoopDemo` | AgentLoopDemo.cs:9 |\n| `CacheService` | CacheService.cs:7 |\n| `CacheEntry`（私有嵌套） | CacheService.cs:28 |\n| `ChartRenderer` | ChartRenderer.cs:7 |\n| `ConfigService` | ConfigService.cs:7 |\n| `NotificationService` | NotificationService.cs:7 |\n| `OrderService` | OrderService.cs:7 |\n| `PagingService` | PagingService.cs:8 |\n| `RetryPolicy` | RetryPolicy.cs:7 |\n| `TimerService`（: IDisposable） | TimerService.cs:7 |\n| `WebSocketClient`（: IDisposable） | WebSocketClient.cs:7 |\n\n**static 类（2 个）：**\n\n| 类 | 位置 |\n|---|---|\n| `LogService`（public） | LogService.cs:6 |\n| `Cache`（internal，嵌套于 NotificationService.cs） | NotificationService.cs:41 |\n\n证据路径：grep 全仓 `sealed class` / `static class` 命中（AgentLoopDemo.cs:9、CacheService.cs:7/28、ChartRenderer.cs:7、ConfigService.cs:7、NotificationService.cs:7/41、OrderService.cs:7、PagingService.cs:8、RetryPolicy.cs:7、TimerService.cs:7、WebSocketClient.cs:7、LogService.cs:6），并已通过 read_file 确认 LogService.cs:6 与 NotificationService.cs:41 的 static 声明。"
+    },
+    {
+      "taskId": "26-order-flow",
+      "title": "分析订单状态机",
+      "category": "分析",
+      "tier": 2,
+      "mode": "flash-only",
+      "pass": true,
+      "score": 1,
+      "hits": [
+        "Draft",
+        "Submitted",
+        "Paid",
+        "Cancelled"
+      ],
+      "missed": [],
+      "tokensIn": 4555,
+      "tokensOut": 1004,
+      "cost": 0.0068,
+      "ms": 5505,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-flash"
+      ],
+      "detail": [],
+      "text": "## 结论\n\n`OrderService` 是一个基于 `OrderStatus` 枚举（Draft / Submitted / Paid / Cancelled）的简单状态机，代码中实际只实现了两种转换，且**不存在任何进入 Paid 状态的转换**。\n\n### 允许的状态转换\n- **Draft → Submitted**：`SubmitOrder` 仅当当前状态为 `Draft` 时成功（`OrderService.cs:24-25`）\n- **Draft / Submitted / Cancelled → Cancelled**：`CancelOrder` 对除 Paid 外的任意状态（包括已取消的订单，幂等）都执行取消（`OrderService.cs:32-33`）\n- **初始状态 Draft**：由 `CreateOrder` 创建（`OrderService.cs:16`）\n\n### 禁止的状态转换（返回 `false`）\n- `SubmitOrder` 在订单不存在 **或状态非 Draft**（即 Submitted / Paid / Cancelled）时失败（`OrderService.cs:24`）\n- `CancelOrder` 在订单不存在 **或状态为 Paid** 时失败（`OrderService.cs:32`）\n\n### CancelOrder 失败条件\n仅在两种情况下失败：订单不存在，或 `order.Status == OrderStatus.Paid`（`OrderService.cs:32`）。\n\n### 关键事实\n- `Paid` 状态**从未被任何代码赋值**——全仓库仅出现在枚举定义（`OrderService.cs:12`）和取消检查（`OrderService.cs:32`）中，因此实际运行中订单永远不可能处于 Paid，`CancelOrder` 的 Paid 分支是死代码。\n\n### 证据路径\n- 枚举定义：`OrderService.cs:12`\n- 初始状态：`OrderService.cs:16`\n- SubmitOrder 守卫与转换：`OrderService.cs:24-25`\n- CancelOrder 守卫与转换：`OrderService.cs:32-33`"
+    },
+    {
+      "taskId": "27-notify-analyze",
+      "title": "分析通知服务逻辑",
+      "category": "分析",
+      "tier": 2,
+      "mode": "flash-only",
+      "pass": true,
+      "score": 1,
+      "hits": [
+        "GetUnreadCount",
+        "SetUnreadCount",
+        "MessageReceived"
+      ],
+      "missed": [],
+      "tokensIn": 4901,
+      "tokensOut": 811,
+      "cost": 0.0068,
+      "ms": 5358,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-flash"
+      ],
+      "detail": [],
+      "text": "## 结论\n\n**NotificationService 收到消息后（`OnMessage`），除了触发 `MessageReceived` 事件，还做了\"未读数 +1 并写回本地缓存\"**。未读数缓存是一个独立的静态内存缓存（非线程安全），与 `CacheService` 无关。\n\n## 证据路径\n\n**`OnMessage` 的处理顺序**（`NotificationService.cs:33-38`）：\n1. `var cache = Cache.GetUnreadCount() + 1;` — 读取当前未读数并 +1\n2. `Cache.SetUnreadCount(cache);` — 写回缓存\n3. `MessageReceived?.Invoke(this, json);` — 最后才触发事件\n\n**未读数缓存的实现**（`NotificationService.cs:41-46`）：\n- `internal static class Cache`，内部就是一个普通静态字段 `private static int _unread;`\n- `GetUnreadCount()` 直接返回 `_unread`，`SetUnreadCount(int v)` 直接赋值\n- **无锁、无过期时间、无持久化**，多线程下存在竞态\n\n**注意区分**：仓库里的 `CacheService.cs:12` 是带过期时间的 `ConcurrentDictionary` 缓存服务，但未被 `NotificationService` 引用（grep 全仓库无交叉引用）。`NotificationService` 使用的是自己嵌套的静态 `Cache` 类，二者是不同的缓存。"
+    },
+    {
+      "taskId": "28-render-perf",
+      "title": "分析图表渲染性能策略",
+      "category": "分析",
+      "tier": 2,
+      "mode": "flash-only",
+      "pass": true,
+      "score": 1,
+      "hits": [
+        "Downsample",
+        "抽稀",
+        "MaxPointsPerFrame"
+      ],
+      "missed": [],
+      "tokensIn": 4070,
+      "tokensOut": 651,
+      "cost": 0.0056,
+      "ms": 4018,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-flash"
+      ],
+      "detail": [],
+      "text": "## 结论\n\n`ChartRenderer` 通过**阈值触发的抽稀采样** + **事件驱动的局部重绘通知**来控制大数据量下的渲染开销。抽稀策略为：**每 2 个点保留 1 个（移除奇数索引点）**，并仅在点数超过阈值时触发。\n\n## 证据\n\n**1. 常量定义（渲染/抽稀阈值）**\n- `ChartRenderer.cs:9` — `MaxPointsPerFrame = 10000`（每帧渲染上限）\n- `ChartRenderer.cs:10` — `DownsampleThreshold = 50000`（触发抽稀的点数阈值）\n\n**2. 数据接入与抽稀触发**\n- `ChartRenderer.cs:15-23` — `AddPoints` 批量追加数据；当 `_points.Count > 50000` 时调用 `Downsample()`，随后触发 `RenderRequested` 事件。\n\n**3. 抽稀策略实现**\n- `ChartRenderer.cs:27-31` — `Downsample()` 从末尾向前**每隔一个索引（步长 2）删除一个点**，即每 2 点保留 1 点，用于\"保持趋势\"（代码注释 `ChartRenderer.cs:29`）。\n\n**4. 渲染开销控制方式**\n- 抽稀为**就地删除（O(n) 移动）**而非重建集合，避免高频分配。\n- 通过 `RenderRequested` 事件（`ChartRenderer.cs:13, 22`）将渲染交给订阅者，实现解耦与批量重绘，而非每点同步绘制。\n\n## 说明\n\n- 未发现使用 `MaxPointsPerFrame` 的实际截断/分帧逻辑——该常量仅定义，实际渲染节流依赖订阅者对事件的处理（仓库内无其他引用，见 grep 结果）。\n- 抽稀算法为简单均匀降采样，保留全部点中的 1/2，不涉及峰值/极值保留（如 LTTB）。"
+    },
+    {
+      "taskId": "29-retry-review",
+      "title": "评审重试策略风险",
+      "category": "评审",
+      "tier": 3,
+      "mode": "flash-only",
+      "pass": false,
+      "score": 0,
+      "hits": [],
+      "missed": [
+        "指数",
+        "重试",
+        "MaxRetryCount"
+      ],
+      "tokensIn": 4134,
+      "tokensOut": 373,
+      "cost": 0.0051,
+      "ms": 1470,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-flash"
+      ],
+      "detail": [],
+      "text": "1: using System;\n2: using System.Collections.Generic;\n3: \n4: namespace DemoApp.Orders\n5: {\n6:     // 订单服务：下单流程状态机 + 订单持久化\n7:     public sealed class OrderService\n8:     {\n9:         private readonly List<Order> _orders = new();\n10:         public const int MaxItemsPerOrder = 20;\n11: \n12:         public enum OrderStatus { Draft, Submitted, Paid, Cancelled }\n13: \n14:         public Order CreateOrder(string customerId)\n15:         {\n16:             var order = new Order { Id = Guid.NewGuid(), CustomerId = customerId, Status = OrderStatus.Draft, CreatedAt = DateTime.Now };\n17:             _orders.Add(order);\n18:             return order;\n19:         }\n20: \n21:         public bool SubmitOrder(Guid orderId)\n22:         {\n23:             var order = _orders.Find(o => o.Id == orderId);\n24:             if (order == null || order.Status != OrderStatus.Draft) return false;\n25:             order.Status = OrderStatus.Submitted;\n26:             return true;\n27:         }\n28: \n29:         public bool CancelOrder(Guid orderId)\n30:         {\n31:             var order = _orders.Find(o => o.Id == orderId);\n32:             if (order == null || order.Status == OrderStatus.Paid) return false;\n33:             order.Status = OrderStatus.Cancelled;\n34:             return true;\n35:         }\n36: \n37:         public List<Order> GetOrders(string customerId) => _orders.FindAll(o => o.CustomerId == customerId);\n38:     }\n39: \n40:     public class Order\n41:     {\n42:         public Guid Id { get; set; }\n43:         public string CustomerId { get; set; } = \"\";\n44:         public OrderService.OrderStatus Status { get; set; }\n45:         public DateTime CreatedAt { get; set; }\n46:     }\n47: }\n48: "
+    },
+    {
+      "taskId": "30-ws-review",
+      "title": "评审 WebSocket 客户端",
+      "category": "评审",
+      "tier": 3,
+      "mode": "flash-only",
+      "pass": true,
+      "score": 1,
+      "hits": [
+        "重连",
+        "连接",
+        "ReconnectIntervalMs"
+      ],
+      "missed": [],
+      "tokensIn": 4527,
+      "tokensOut": 1527,
+      "cost": 0.0079,
+      "ms": 8857,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-flash"
+      ],
+      "detail": [],
+      "text": "## 评审结论\n\n**发现多个断线重连与线程安全问题，其中重连功能实际完全缺失。**\n\n### 风险 1：重连逻辑缺失（断线后永不重连）\n\n`WebSocketClient.cs:9` 声明了 `ReconnectIntervalMs = 3000`，但全仓库搜索（grep `Reconnect|ConnectAsync`）显示该常量从未被使用，类中不存在任何重连循环：\n\n- `WebSocketClient.cs:31-41` 的 `ReceiveLoopAsync` 在收到 Close 或连接异常退出后仅触发 `ConnectionClosed` 事件，随后循环结束，**没有任何重新连接动作**；\n- `WebSocketClient.cs:18-22` 的 `ConnectAsync` 若首次连接失败（`_socket.ConnectAsync` 抛异常），异常直接上抛，**无重试机制**。\n\n**改进建议**：在 `ReceiveLoopAsync` 退出时（以及 `ConnectAsync` 失败时）进入重连循环：`while (!IsConnected) { try { await _socket.ConnectAsync(uri, token); } catch { await Task.Delay(ReconnectIntervalMs); } }`，并配合指数退避与最大重试次数，避免对不可达服务器无限重试。\n\n### 风险 2：共享 `_socket` 无并发同步，多线程竞态\n\n`_socket`（`WebSocketClient.cs:12`）被四个成员在无任何锁/CancellationToken 的情况下并发访问：\n\n- 多个线程同时调用 `ConnectAsync` 会竞态——`ClientWebSocket` 非 `None` 状态再次 `ConnectAsync` 会抛 `InvalidOperationException`（`WebSocketClient.cs:20`）；\n- `Dispose`（`WebSocketClient.cs:43`）可能与其他线程正在执行的 `SendAsync`/`ReceiveAsync` 并发，导致 `ObjectDisposedException`；\n- 事件 `MessageReceived`/`ConnectionClosed`（`WebSocketClient.cs:13-14`）被多个线程同时触发，订阅方无保护。\n\n**改进建议**：引入独立的 `SemaphoreSlim`/lock 序列化 `ConnectAsync`/`SendAsync`/`Dispose`；用 `CancellationTokenSource` 管理连接生命周期，`Dispose` 时先取消令牌再释放 socket；对连接状态做 `Volatile`/`Interlocked` 保护或 CAS 置位，避免旧连接残留。\n\n### 风险 3：fire-and-forget 接收循环无取消令牌，旧循环残留 + 异常被吞\n\n- `WebSocketClient.cs:21` 的 `_ = ReceiveLoopAsync()` 未持有引用、无取消令牌，断线重连后**旧的接收循环可能仍在运行**，继续消费/触发事件，与新连接相互干扰；\n- `ReceiveAsync`（`WebSocketClient.cs:36`）抛出的异常（如网络中断）在 `ReceiveLoopAsync` 内无 try/catch，作为未观察任务异常被静默吞掉，`ConnectionClosed` 也可能不触发。\n\n**改进建议**：为每次连接创建专属 `CancellationTokenSource`，`ReceiveLoopAsync` 全程使用 `token`；在 `try/catch` 中统一调用重连逻辑并触发关闭事件；用字段保存任务句柄供 `Dispose` 等待/取消，避免失控的异步循环。\n\n### 其他次要问题\n- `SendAsync` 使用 `CancellationToken.None`（`WebSocketClient.cs:28`），无法被 Dispose 中断；\n- `ReceiveLoopAsync` 未做分帧拼接，大消息会按 8192 字节（`WebSocketClient.cs:10`）截断后多次触发事件（`WebSocketClient.cs:38`）。"
+    },
+    {
+      "taskId": "timer-storm",
+      "title": "定时轮询风险评审",
+      "category": "评审",
+      "tier": 3,
+      "mode": "pro-only",
+      "pass": false,
+      "score": 0,
+      "hits": [],
+      "missed": [
+        "定时器风暴",
+        "事件驱动",
+        "按需刷新",
+        "重复请求"
+      ],
+      "tokensIn": 7302,
+      "tokensOut": 836,
+      "cost": 0.0281,
+      "ms": 4486,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-pro"
+      ],
+      "detail": [],
+      "text": "1: using System;\n2: using System.Collections.Generic;\n3: \n4: namespace DemoApp.Config\n5: {\n6:     // 配置服务：支持 JSON 文件 + 环境变量覆盖\n7:     public sealed class ConfigService\n8:     {\n9:         private readonly Dictionary<string, string> _values = new();\n10:         public const string DefaultConfigFile = \"appsettings.json\";\n11: \n12:         public ConfigService LoadFromFile(string path = DefaultConfigFile)\n13:         {\n14:             // 读取 JSON 配置写入 _values\n15:             return this;\n16:         }\n17: \n18:         public ConfigService ApplyEnvironmentOverrides()\n19:         {\n20:             // 环境变量 APP_XXX 覆盖同名配置项\n21:             return this;\n22:         }\n23: \n24:         public string Get(string key, string fallback = \"\") =>\n25:             _values.TryGetValue(key, out var v) ? v : fallback;\n26: \n27:         public bool GetBool(string key, bool fallback = false) =>\n28:             bool.TryParse(Get(key), out var v) ? v : fallback;\n29: \n30:         public int GetInt(string key, int fallback = 0) =>\n31:             int.TryParse(Get(key), out var v) ? v : fallback;\n32:     }\n33: }\n34: "
+    },
+    {
+      "taskId": "11-timer-sample",
+      "title": "定位定时器服务的间隔与生命周期",
+      "category": "检索",
+      "tier": 1,
+      "mode": "pro-only",
+      "pass": true,
+      "score": 1,
+      "hits": [
+        "5000",
+        "Start",
+        "Stop"
+      ],
+      "missed": [],
+      "tokensIn": 2528,
+      "tokensOut": 249,
+      "cost": 0.0095,
+      "ms": 2131,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-pro"
+      ],
+      "detail": [],
+      "text": "结论：\n- 默认定时器间隔：5000 毫秒（构造函数默认参数 `intervalMs = 5000`）。TimerService.cs:11\n- 公开方法：\n  - `TimerService(int intervalMs = 5000)` 构造函数 — TimerService.cs:11\n  - `void Start()` — TimerService.cs:19\n  - `void Stop()` — TimerService.cs:20\n  - `void Dispose()` — TimerService.cs:25\n- 公开成员：\n  - 事件 `event EventHandler? Tick` — TimerService.cs:17\n  - 属性 `bool IsRunning` — TimerService.cs:21"
+    },
+    {
+      "taskId": "12-paging-sample",
+      "title": "分析分页服务的性能策略",
+      "category": "分析",
+      "tier": 2,
+      "mode": "pro-only",
+      "pass": true,
+      "score": 1,
+      "hits": [
+        "UNION ALL",
+        "分片",
+        "当天"
+      ],
+      "missed": [],
+      "tokensIn": 4317,
+      "tokensOut": 696,
+      "cost": 0.0179,
+      "ms": 4933,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-pro"
+      ],
+      "detail": [],
+      "text": "结论：\n- PagingService 避免大结果集排序的两种手段：① 分片 LIMIT 策略——每个分片单独 `ORDER BY id LIMIT pageSize OFFSET offset`，避免对全表排序；② 动态 `UNION ALL` 子查询——每个分片只取一页，合并后再排序小结果集。\n- 历史记录日期范围默认规则：按“当天日期”（`DateTime.Today`）过滤，而非当前时刻，以避免跨日边界漏数据。\n\n证据路径：\n- PagingService.cs:7（分片 LIMIT 策略注释）\n- PagingService.cs:13-14（动态 UNION ALL 子查询：每个分片只取一页，再合并排序）\n- PagingService.cs:20（分片查询 `WHERE shard_id = i ORDER BY id LIMIT ... OFFSET ...`）\n- PagingService.cs:10-11（历史记录默认按“当天日期”，`GetDefaultStartOfDay() => DateTime.Today`）"
+    },
+    {
+      "taskId": "13-notify-sample",
+      "title": "评审通知服务的重连逻辑",
+      "category": "评审",
+      "tier": 3,
+      "mode": "pro-only",
+      "pass": true,
+      "score": 1,
+      "hits": [
+        "指数退避",
+        "重试",
+        "缓存"
+      ],
+      "missed": [],
+      "tokensIn": 3978,
+      "tokensOut": 1749,
+      "cost": 0.0234,
+      "ms": 25706,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-pro"
+      ],
+      "detail": [],
+      "text": "## 结论\n\n`NotificationService` 的重连与消息处理逻辑存在以下风险点：\n\n### 风险点 1：重试策略不完整——失败后静默退出，且退避无随机抖动\n\n- `ConnectAsync` 的 while 条件为 `_retryCount < MaxRetry`，达到 5 次失败后直接退出，**不抛异常、不记录日志、不通知调用方**，调用者无法区分“已连接”和“重试耗尽后放弃”（`NotificationService.cs:18-31`）。\n- 指数退避 `Math.Pow(2, _retryCount)` 是固定间隔，大量客户端同时断线重连会形成“惊群”（`NotificationService.cs:22`）。\n- 退避发生在每次尝试**之前**，首次连接也需等待 1 秒（`NotificationService.cs:22`）。\n\n**建议**：\n- 重试耗尽后抛出异常或返回状态/触发事件，让上层可感知；\n- 退避加随机抖动（jitter）或使用现有 `RetryPolicy` 的固定策略；\n- 首次尝试不应延迟，退避应放在失败之后。\n\n### 风险点 2：未读数缓存更新存在并发丢失（非线程安全）\n\n- `OnMessage` 中的 `var cache = Cache.GetUnreadCount() + 1; Cache.SetUnreadCount(cache);` 是“读-改-写”三段操作，`Cache._unread` 是普通 `static int`（`NotificationService.cs:35,43-45`）。\n- 多个线程/多条消息并发调用 `OnMessage` 时，两次读可能都读到同一旧值，导致**计数丢失**（少加 1）。\n- 项目里已存在线程安全的 `CacheService`（`ConcurrentDictionary`，`CacheService.cs:12`），但此处却用了另一套无锁的静态缓存，设计不一致。\n\n**建议**：\n- 使用 `Interlocked.Increment` 原子更新未读数；\n- 或将未读数纳入统一的 `CacheService` 管理，避免两套缓存实现并存。\n\n### 风险点 3：事件订阅方异常会向上传播，且连接状态与真实连接脱节\n\n- `MessageReceived?.Invoke(this, json)` 未做任何异常隔离，任一订阅者抛异常都会中断消息处理流程（`NotificationService.cs:37`）；若该调用位于接收循环中（如 `WebSocketClient.ReceiveLoopAsync`，`WebSocketClient.cs:38-40`），一次异常即可终止整个接收循环。\n- `IsConnected` 在 `ConnectAsync` 中被手动置为 `true`，但没有监听断线事件；一旦连接丢失，`IsConnected` 仍为 `true`，也不会触发重连（`NotificationService.cs:23`）。\n- `ConnectAsync` 本身无并发保护，重复调用会导致 `_retryCount` 竞争。\n\n**建议**：\n- 订阅 `ConnectionClosed` 事件，将 `IsConnected` 置回 `false` 并触发重连；\n- 用 `try/catch` 包裹 `Invoke` 隔离订阅方异常，保证循环稳定；\n- 对连接状态与重试计数加锁或使用 `SemaphoreSlim` 防止并发重入。\n\n## 证据路径\n\n- `NotificationService.cs:18-31` —— 重连循环、退避与静默退出\n- `NotificationService.cs:22` —— 无抖动的指数退避\n- `NotificationService.cs:33-38` —— 消息处理与事件调用\n- `NotificationService.cs:35,43-45` —— 非线程安全的未读数缓存\n- `CacheService.cs:12` —— 已有线程安全缓存实现，存在两套缓存\n- `WebSocketClient.cs:38-40` —— 接收循环中的事件调用，异常会终止循环"
+    },
+    {
+      "taskId": "14-agent-demo",
+      "title": "分析示例 Agent 循环",
+      "category": "分析",
+      "tier": 2,
+      "mode": "pro-only",
+      "pass": true,
+      "score": 1,
+      "hits": [
+        "6",
+        "required",
+        "auto"
+      ],
+      "missed": [],
+      "tokensIn": 2889,
+      "tokensOut": 349,
+      "cost": 0.0112,
+      "ms": 4454,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-pro"
+      ],
+      "detail": [],
+      "text": "结论：\n\n- **最大轮数**：6 轮（`MaxRounds = 6`，循环 `round <= MaxRounds`）。\n- **首轮工具选择策略**：强制工具调用 —— `hasToolResult` 初始为 `false`，因此首轮 `toolChoice = \"required\"`。\n- **拿到工具结果后的策略**：改为模型自主选择 —— 一旦执行过工具并生成 `tool` 消息，`hasToolResult = true`，下一轮 `toolChoice = \"auto\"`；若模型继续返回 `tool_calls` 则继续执行工具并循环，否则直接返回模型的文本内容；若达到轮次上限则返回 `\"(达到轮次上限)\"`。\n\n证据路径：\n- AgentLoopDemo.cs:11（最大轮数常量）\n- AgentLoopDemo.cs:22（轮次上限循环）\n- AgentLoopDemo.cs:24（首轮强制工具调用）\n- AgentLoopDemo.cs:40-43（拿到结果后改为 auto 及返回逻辑）\n- AgentLoopDemo.cs:45（轮次上限返回）"
+    },
+    {
+      "taskId": "15-namespace-sample",
+      "title": "梳理示例代码库的命名空间结构",
+      "category": "检索",
+      "tier": 2,
+      "mode": "pro-only",
+      "pass": true,
+      "score": 1,
+      "hits": [
+        "DemoApp.Timers",
+        "DemoApp.Data",
+        "DemoApp.Push",
+        "DemoApp.Agent"
+      ],
+      "missed": [],
+      "tokensIn": 2658,
+      "tokensOut": 733,
+      "cost": 0.0129,
+      "ms": 5327,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-pro"
+      ],
+      "detail": [],
+      "text": "## 结论\n\n示例代码库共存在 **11 个命名空间**，类清单如下：\n\n| 命名空间 | 文件 | 类 |\n|---|---|---|\n| `DemoApp.Agent` | AgentLoopDemo.cs | `AgentLoopDemo`（sealed） |\n| `DemoApp.Caching` | CacheService.cs | `CacheService`（sealed）、`CacheEntry`（private sealed） |\n| `DemoApp.Charts` | ChartRenderer.cs | `ChartRenderer`（sealed） |\n| `DemoApp.Config` | ConfigService.cs | `ConfigService`（sealed） |\n| `DemoApp.Logging` | LogService.cs | `LogService`（static） |\n| `DemoApp.Push` | NotificationService.cs | `NotificationService`（sealed）、`Cache`（internal static） |\n| `DemoApp.Orders` | OrderService.cs | `OrderService`（sealed）、`Order`（public） |\n| `DemoApp.Data` | PagingService.cs | `PagingService`（sealed） |\n| `DemoApp.Resilience` | RetryPolicy.cs | `RetryPolicy`（sealed） |\n| `DemoApp.Timers` | TimerService.cs | `TimerService`（sealed，实现 `IDisposable`） |\n| `DemoApp.Network` | WebSocketClient.cs | `WebSocketClient`（sealed，实现 `IDisposable`） |\n\n## 证据路径\n\n- namespace 声明：\n  - AgentLoopDemo.cs:6\n  - CacheService.cs:4\n  - ChartRenderer.cs:4\n  - ConfigService.cs:4\n  - LogService.cs:3\n  - NotificationService.cs:4\n  - OrderService.cs:4\n  - PagingService.cs:5\n  - RetryPolicy.cs:4\n  - TimerService.cs:4\n  - WebSocketClient.cs:4\n- class 声明：\n  - AgentLoopDemo.cs:9\n  - CacheService.cs:7、CacheService.cs:28\n  - ChartRenderer.cs:7\n  - ConfigService.cs:7\n  - LogService.cs:6\n  - NotificationService.cs:7、NotificationService.cs:41\n  - OrderService.cs:7、OrderService.cs:40\n  - PagingService.cs:8\n  - RetryPolicy.cs:7\n  - TimerService.cs:7\n  - WebSocketClient.cs:7"
+    },
+    {
+      "taskId": "16-order-service",
+      "title": "定位订单服务的方法与状态",
+      "category": "检索",
+      "tier": 1,
+      "mode": "pro-only",
+      "pass": true,
+      "score": 1,
+      "hits": [
+        "CreateOrder",
+        "SubmitOrder",
+        "CancelOrder",
+        "OrderStatus"
+      ],
+      "missed": [],
+      "tokensIn": 2829,
+      "tokensOut": 302,
+      "cost": 0.0107,
+      "ms": 2925,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-pro"
+      ],
+      "detail": [],
+      "text": "## 结论\n\n**OrderService 公开方法**（`OrderService.cs`）\n- `CreateOrder(string customerId)` — OrderService.cs:14\n- `SubmitOrder(Guid orderId)` — OrderService.cs:21\n- `CancelOrder(Guid orderId)` — OrderService.cs:29\n- `GetOrders(string customerId)` — OrderService.cs:37\n\n另有公开成员：\n- 嵌套枚举 `OrderStatus` — OrderService.cs:12\n- 常量 `MaxItemsPerOrder`（值 20）— OrderService.cs:10\n\n**订单状态枚举值**（`OrderService.OrderStatus`，OrderService.cs:12）\n- `Draft`\n- `Submitted`\n- `Paid`\n- `Cancelled`"
+    },
+    {
+      "taskId": "17-config-source",
+      "title": "配置服务的加载来源",
+      "category": "检索",
+      "tier": 1,
+      "mode": "pro-only",
+      "pass": true,
+      "score": 1,
+      "hits": [
+        "appsettings.json",
+        "环境变量"
+      ],
+      "missed": [],
+      "tokensIn": 2820,
+      "tokensOut": 278,
+      "cost": 0.0106,
+      "ms": 2096,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-pro"
+      ],
+      "detail": [],
+      "text": "结论：\n- ConfigService 从两个来源加载配置：JSON 配置文件（`LoadFromFile`，对应默认配置文件）+ 环境变量覆盖（`ApplyEnvironmentOverrides`）。\n- 默认配置文件名为 `appsettings.json`。\n\n证据路径：\n- ConfigService.cs:6（注释：支持 JSON 文件 + 环境变量覆盖）\n- ConfigService.cs:10（`DefaultConfigFile = \"appsettings.json\"`）\n- ConfigService.cs:12（`LoadFromFile` 默认参数 `DefaultConfigFile`）\n- ConfigService.cs:18（`ApplyEnvironmentOverrides`）"
+    },
+    {
+      "taskId": "18-chart-render",
+      "title": "图表渲染器的性能常量",
+      "category": "检索",
+      "tier": 1,
+      "mode": "pro-only",
+      "pass": true,
+      "score": 1,
+      "hits": [
+        "MaxPointsPerFrame",
+        "DownsampleThreshold",
+        "50000"
+      ],
+      "missed": [],
+      "tokensIn": 3115,
+      "tokensOut": 249,
+      "cost": 0.0113,
+      "ms": 2444,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-pro"
+      ],
+      "detail": [],
+      "text": "ChartRenderer 定义了 2 个性能相关常量：\n\n- `MaxPointsPerFrame = 10000`\n- `DownsampleThreshold = 50000`\n\n证据路径：\n- ChartRenderer.cs:9\n- ChartRenderer.cs:10"
+    },
+    {
+      "taskId": "19-log-level",
+      "title": "日志服务的级别与滚动",
+      "category": "检索",
+      "tier": 1,
+      "mode": "pro-only",
+      "pass": true,
+      "score": 1,
+      "hits": [
+        "Debug",
+        "Info",
+        "Warn",
+        "Error",
+        "MaxLogFileSizeBytes"
+      ],
+      "missed": [],
+      "tokensIn": 2465,
+      "tokensOut": 205,
+      "cost": 0.009,
+      "ms": 1964,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-pro"
+      ],
+      "detail": [],
+      "text": "结论：LogService 定义了 4 个日志级别（Debug、Info、Warn、Error）；默认最小级别为 Info；日志文件滚动大小为 10MB。\n\n证据路径：\n- LogService.cs:8 —— enum LogLevel { Debug, Info, Warn, Error }\n- LogService.cs:10 —— MinLevel 默认 = LogLevel.Info\n- LogService.cs:11 —— MaxLogFileSizeBytes = 10 * 1024 * 1024（10MB 滚动）"
+    },
+    {
+      "taskId": "20-retry-policy",
+      "title": "重试策略的参数",
+      "category": "检索",
+      "tier": 1,
+      "mode": "pro-only",
+      "pass": true,
+      "score": 1,
+      "hits": [
+        "MaxRetryCount",
+        "3",
+        "BaseDelayMs",
+        "200"
+      ],
+      "missed": [],
+      "tokensIn": 2443,
+      "tokensOut": 244,
+      "cost": 0.0092,
+      "ms": 2739,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-pro"
+      ],
+      "detail": [],
+      "text": "结论：最大重试次数为 3；基础延迟为 200ms；退避策略为指数退避（延迟 = 200ms × 2^(attempt-1)，即 200ms、400ms、800ms）。\n\n证据路径：\n- RetryPolicy.cs:9（`MaxRetryCount = 3`）\n- RetryPolicy.cs:10（`BaseDelayMs = 200`）\n- RetryPolicy.cs:24-25（`BaseDelayMs * (int)Math.Pow(2, attempt - 1)`，指数退避）\n- RetryPolicy.cs:6 注释“固定上限 + 指数退避”"
+    },
+    {
+      "taskId": "21-cache-service",
+      "title": "缓存服务的键规则",
+      "category": "检索",
+      "tier": 1,
+      "mode": "pro-only",
+      "pass": true,
+      "score": 1,
+      "hits": [
+        "app:cache:",
+        "DefaultTtlSeconds",
+        "ConcurrentDictionary"
+      ],
+      "missed": [],
+      "tokensIn": 2927,
+      "tokensOut": 268,
+      "cost": 0.0108,
+      "ms": 2178,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-pro"
+      ],
+      "detail": [],
+      "text": "结论：CacheService 的缓存键前缀为 `app:cache:`，默认 TTL 为 60 秒；底层使用 `ConcurrentDictionary<string, CacheEntry>`（内存字典）存储，CacheEntry 包含 Value 和过期时间 ExpiresAt。\n\n证据路径：\n- CacheService.cs:9 — `DefaultTtlSeconds = 60`\n- CacheService.cs:10 — `KeyPrefix = \"app:cache:\"`\n- CacheService.cs:12 — `ConcurrentDictionary<string, CacheEntry> _entries`\n- CacheService.cs:28-33 — `CacheEntry` 存储结构"
+    },
+    {
+      "taskId": "22-ws-client",
+      "title": "WebSocket 客户端参数",
+      "category": "检索",
+      "tier": 1,
+      "mode": "pro-only",
+      "pass": true,
+      "score": 1,
+      "hits": [
+        "ReconnectIntervalMs",
+        "3000",
+        "ReceiveBufferSize",
+        "8192"
+      ],
+      "missed": [],
+      "tokensIn": 2823,
+      "tokensOut": 203,
+      "cost": 0.0101,
+      "ms": 1967,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-pro"
+      ],
+      "detail": [],
+      "text": "结论：WebSocketClient 的重连间隔为 3000ms，接收缓冲区大小为 8192 字节。\n\n证据路径：\n- WebSocketClient.cs:9 —— `public const int ReconnectIntervalMs = 3000;`\n- WebSocketClient.cs:10 —— `public const int ReceiveBufferSize = 8192;`"
+    },
+    {
+      "taskId": "23-event-list",
+      "title": "查找全部事件定义",
+      "category": "检索",
+      "tier": 1,
+      "mode": "pro-only",
+      "pass": true,
+      "score": 1,
+      "hits": [
+        "TimerService",
+        "NotificationService",
+        "ChartRenderer",
+        "WebSocketClient"
+      ],
+      "missed": [],
+      "tokensIn": 2869,
+      "tokensOut": 261,
+      "cost": 0.0106,
+      "ms": 2559,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-pro"
+      ],
+      "detail": [],
+      "text": "结论：共 4 个类声明了 5 个事件。\n\n- ChartRenderer：`RenderRequested`（EventHandler）\n- NotificationService：`MessageReceived`（EventHandler<string>）\n- TimerService：`Tick`（EventHandler）\n- WebSocketClient：`MessageReceived`（EventHandler<string>）、`ConnectionClosed`（EventHandler）\n\n证据路径：\n- ChartRenderer.cs:13\n- NotificationService.cs:12\n- TimerService.cs:17\n- WebSocketClient.cs:13、WebSocketClient.cs:14"
+    },
+    {
+      "taskId": "24-order-const",
+      "title": "定位订单服务的常量",
+      "category": "检索",
+      "tier": 1,
+      "mode": "pro-only",
+      "pass": true,
+      "score": 1,
+      "hits": [
+        "MaxItemsPerOrder",
+        "20"
+      ],
+      "missed": [],
+      "tokensIn": 2807,
+      "tokensOut": 181,
+      "cost": 0.0099,
+      "ms": 1832,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-pro"
+      ],
+      "detail": [],
+      "text": "结论：OrderService 里单笔订单最大条目数常量叫 `MaxItemsPerOrder`，值是 `20`（int）。\n\n证据路径：OrderService.cs:10"
+    },
+    {
+      "taskId": "25-sealed-static",
+      "title": "查找 sealed 与 static 类",
+      "category": "检索",
+      "tier": 1,
+      "mode": "pro-only",
+      "pass": false,
+      "score": 0,
+      "hits": [],
+      "missed": [
+        "sealed class",
+        "sealed 类",
+        "static class",
+        "static 类"
+      ],
+      "tokensIn": 1623,
+      "tokensOut": 585,
+      "cost": 0.0087,
+      "ms": 6379,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-pro"
+      ],
+      "detail": [],
+      "text": "结论：\n\n**声明为 sealed 的类（10 个）：**\n\n| 类 | 位置 |\n|---|---|\n| `AgentLoopDemo` | AgentLoopDemo.cs:9 |\n| `CacheService` | CacheService.cs:7 |\n| `CacheEntry`（私有嵌套） | CacheService.cs:28 |\n| `ChartRenderer` | ChartRenderer.cs:7 |\n| `ConfigService` | ConfigService.cs:7 |\n| `NotificationService` | NotificationService.cs:7 |\n| `OrderService` | OrderService.cs:7 |\n| `PagingService` | PagingService.cs:8 |\n| `RetryPolicy` | RetryPolicy.cs:7 |\n| `TimerService` | TimerService.cs:7 |\n| `WebSocketClient` | WebSocketClient.cs:7 |\n\n**声明为 static 的类（2 个）：**\n\n| 类 | 位置 |\n|---|---|\n| `LogService` | LogService.cs:6 |\n| `Cache`（内部嵌套） | NotificationService.cs:41 |\n\n证据路径：\n- sealed：AgentLoopDemo.cs:9、CacheService.cs:7、CacheService.cs:28、ChartRenderer.cs:7、ConfigService.cs:7、NotificationService.cs:7、OrderService.cs:7、PagingService.cs:8、RetryPolicy.cs:7、TimerService.cs:7、WebSocketClient.cs:7\n- static：LogService.cs:6、NotificationService.cs:41"
+    },
+    {
+      "taskId": "26-order-flow",
+      "title": "分析订单状态机",
+      "category": "分析",
+      "tier": 2,
+      "mode": "pro-only",
+      "pass": true,
+      "score": 1,
+      "hits": [
+        "Draft",
+        "Submitted",
+        "Paid",
+        "Cancelled"
+      ],
+      "missed": [],
+      "tokensIn": 2821,
+      "tokensOut": 876,
+      "cost": 0.0143,
+      "ms": 9982,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-pro"
+      ],
+      "detail": [],
+      "text": "## 结论\n\n`OrderService` 的订单状态枚举为 `Draft`、`Submitted`、`Paid`、`Cancelled`（OrderService.cs:12）。\n\n**允许的状态转换：**\n\n| 操作 | 转换 | 条件 |\n|------|------|------|\n| `CreateOrder` | (无) → `Draft` | 新建订单默认 `Draft`（OrderService.cs:16） |\n| `SubmitOrder` | `Draft` → `Submitted` | 仅当前状态为 `Draft` 时成功（OrderService.cs:24-25） |\n| `CancelOrder` | `Draft` / `Submitted` / `Cancelled` → `Cancelled` | 除 `Paid` 外均可取消（OrderService.cs:32-33） |\n\n**禁止的状态转换：**\n\n- `SubmitOrder`：从 `Submitted`、`Paid`、`Cancelled` 提交均失败，返回 `false`（OrderService.cs:24）。\n- `CancelOrder`：从 `Paid` 状态取消被禁止，返回 `false`（OrderService.cs:32）。\n- 代码中没有任何方法把订单置为 `Paid`（OrderService.cs:12 定义枚举，但 14-37 行仅创建/提交/取消），因此 `Paid` 状态在当前服务内不可达，却作为取消的硬性拦截条件。\n\n**CancelOrder 的失败条件：**\n\n`CancelOrder` 在以下两种情况返回 `false`（OrderService.cs:31-32）：\n1. 找不到对应订单（`order == null`）；\n2. 订单状态为 `Paid`（`order.Status == OrderStatus.Paid`）。\n\n其他状态（`Draft`、`Submitted`、已处于 `Cancelled`）都会成功返回 `true`，并将状态置为 `Cancelled`（OrderService.cs:33-34）。\n\n## 证据路径\n\n- OrderService.cs:12（状态枚举定义）\n- OrderService.cs:16（创建即 `Draft`）\n- OrderService.cs:24-25（提交仅允许 `Draft`）\n- OrderService.cs:31-34（取消逻辑与 `Paid` 拦截）"
+    },
+    {
+      "taskId": "27-notify-analyze",
+      "title": "分析通知服务逻辑",
+      "category": "分析",
+      "tier": 2,
+      "mode": "pro-only",
+      "pass": true,
+      "score": 1,
+      "hits": [
+        "GetUnreadCount",
+        "SetUnreadCount",
+        "MessageReceived"
+      ],
+      "missed": [],
+      "tokensIn": 2871,
+      "tokensOut": 597,
+      "cost": 0.0127,
+      "ms": 6967,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-pro"
+      ],
+      "detail": [],
+      "text": "结论：\n`NotificationService.OnMessage` 收到消息后，除了触发 `MessageReceived` 事件，还会先把本地未读数缓存加 1：调用 `Cache.GetUnreadCount() + 1` 得到新值，再用 `Cache.SetUnreadCount(cache)` 写回，然后才触发事件。\n\n未读数缓存更新方式：\n- 缓存定义在 `NotificationService.cs` 内部的 `internal static class Cache`，用静态字段 `_unread` 存储（`NotificationService.cs:43`）。\n- `GetUnreadCount()` 返回 `_unread`（`NotificationService.cs:44`）。\n- `SetUnreadCount(int v)` 将 `_unread = v` 直接赋值覆盖（`NotificationService.cs:45`）。\n- 更新逻辑为「读旧值 + 1 → 写回」，即收到一条消息未读数递增 1（`NotificationService.cs:35-36`）。\n- 触发事件的代码在 `NotificationService.cs:37`。\n\n证据路径：\n- NotificationService.cs:33-38（OnMessage 方法）\n- NotificationService.cs:41-46（Cache 类与读写方法）"
+    },
+    {
+      "taskId": "28-render-perf",
+      "title": "分析图表渲染性能策略",
+      "category": "分析",
+      "tier": 2,
+      "mode": "pro-only",
+      "pass": true,
+      "score": 1,
+      "hits": [
+        "Downsample",
+        "抽稀",
+        "MaxPointsPerFrame"
+      ],
+      "missed": [],
+      "tokensIn": 4126,
+      "tokensOut": 609,
+      "cost": 0.0167,
+      "ms": 6757,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-pro"
+      ],
+      "detail": [],
+      "text": "结论：`ChartRenderer` 主要通过**阈值触发的抽稀（每 2 点取 1 点）** 控制大数据量渲染开销，并定义了单帧最大点数常量（但当前代码中 `MaxPointsPerFrame` 仅作声明，未被实际使用）。整体采用“抽稀采样 + 局部重绘（事件通知）”思路。\n\n具体策略：\n1. **容量上限触发抽稀**：`AddPoints` 累加点后，若 `_points.Count > DownsampleThreshold`（50000），调用 `Downsample()`。证据：`ChartRenderer.cs:17-21`\n2. **抽稀算法**：逆序遍历，步长 2，即“每 2 点取 1 个，保持趋势”（删除索引为偶数的点），将数据量近似减半。证据：`ChartRenderer.cs:27-31`\n3. **渲染开销提示常量**：`MaxPointsPerFrame = 10000`、`DownsampleThreshold = 50000` 定义了帧内点数与抽稀阈值，但 `MaxPointsPerFrame` 未在方法中被引用，当前实际只依赖阈值抽稀。证据：`ChartRenderer.cs:9-10`\n4. **局部重绘通知**：每次添加数据后触发 `RenderRequested` 事件，由订阅方决定重绘。证据：`ChartRenderer.cs:13,22`\n\n注：`Downsample()` 的逆序删除逻辑为 `i -= 2` 从末尾开始，实际是隔点删除、保留一半，符合“抽稀”描述；`MaxPointsPerFrame` 常量存在但未参与控制逻辑，仅作为预留上限声明。"
+    },
+    {
+      "taskId": "29-retry-review",
+      "title": "评审重试策略风险",
+      "category": "评审",
+      "tier": 3,
+      "mode": "pro-only",
+      "pass": true,
+      "score": 1,
+      "hits": [
+        "指数",
+        "重试",
+        "MaxRetryCount"
+      ],
+      "missed": [],
+      "tokensIn": 3347,
+      "tokensOut": 2021,
+      "cost": 0.0231,
+      "ms": 33165,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-pro"
+      ],
+      "detail": [],
+      "text": "结论：`RetryPolicy.ExecuteAsync` 的重试逻辑存在三类主要风险：①捕获范围过宽，会重试所有异常而非仅瞬时故障；②指数退避缺少抖动与上限，且不可取消；③依赖 `while(true)` + 异常过滤器控制上限，结构脆弱，失败时无日志/遥测。\n\n证据与建议：\n\n1. **重试覆盖范围过宽（无差别捕获全部异常）**\n   - 证据：`RetryPolicy.cs:21` `catch (Exception ex) when (attempt < MaxRetryCount)`\n   - 风险：对 `ArgumentException`、`NullReferenceException`、`InvalidOperationException` 等确定性/代码缺陷类异常也重试，会掩盖 bug，并对非幂等操作重复执行，造成副作用。\n   - 建议：只重试可判定的瞬时错误（如 `TimeoutException`、`HttpRequestException`、5xx/429 状态等）；对 `OperationCanceledException` 直接传播不重试。\n\n2. **退避时长无抖动、无上限，且不可取消**\n   - 证据：`RetryPolicy.cs:24-25` `int delayMs = BaseDelayMs * (int)Math.Pow(2, attempt - 1); await Task.Delay(delayMs);`\n   - 风险：固定指数退避无随机抖动，高并发下所有失败请求会同步重试，形成“惊群”；若后续调大 `MaxRetryCount` 或 `BaseDelayMs`，退避时间无上限；`Task.Delay` 未传 `CancellationToken`，关闭/取消场景无法及时中断。\n   - 建议：加入 ±20% 随机抖动并设置最大延迟上限（如 `Math.Min(delayMs, MaxDelayMs)`）；为 `ExecuteAsync` 增加 `CancellationToken` 并传入 `Task.Delay`。\n\n3. **循环与上限控制方式脆弱（`while(true)` + 过滤器隐式退出）**\n   - 证据：`RetryPolicy.cs:15-27` `while (true)` 仅靠 `when (attempt < MaxRetryCount)` 决定是否吞掉异常继续循环\n   - 风险：循环退出完全依赖异常过滤器，可读性差；一旦过滤器条件被误改或常量配置错误，可能退化为无限重试；重试失败过程无任何日志/计数暴露，排障困难。\n   - 建议：改用显式 `for` 循环 `for (int attempt = 0; attempt < MaxRetryCount; attempt++)` 明确次数；每次重试记录 attempt/异常信息（结构化日志或 metrics），最后一次失败直接抛出原始异常或包装为带 attempt 计数的异常。\n\n（附：`NotificationService.cs:18-28` 的断线重连也存在无上限退避风险——`Math.Pow(2, _retryCount)` 直接作为秒数，无上限保护；若需统一重试策略可一并整改。）"
+    },
+    {
+      "taskId": "30-ws-review",
+      "title": "评审 WebSocket 客户端",
+      "category": "评审",
+      "tier": 3,
+      "mode": "pro-only",
+      "pass": true,
+      "score": 1,
+      "hits": [
+        "重连",
+        "连接",
+        "ReconnectIntervalMs"
+      ],
+      "missed": [],
+      "tokensIn": 4989,
+      "tokensOut": 1377,
+      "cost": 0.0242,
+      "ms": 14401,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-pro"
+      ],
+      "detail": [],
+      "text": "结论：`WebSocketClient` 名为“断线自动重连”，但实际未实现重连，且并发发送与 Dispose 存在明显线程安全风险。\n\n## 风险与改进建议\n\n**风险1：断线重连未实现（核心缺陷）**\n`ConnectAsync` 只在连接成功后启动一次 `ReceiveLoopAsync`，循环在 `Close` 后 `break` 直接触发 `ConnectionClosed`，没有任何重新 `ConnectAsync` 的逻辑；且 `ClientWebSocket` 实例在关闭/出错后不能复用。\n- 证据：WebSocketClient.cs:18-22、WebSocketClient.cs:31-41\n\n改进建议：在 `ReceiveLoopAsync` 捕获断开原因后，新建 `ClientWebSocket` 并循环重连（结合已有的 `ReconnectIntervalMs` 常量，WebSocketClient.cs:9），并可通过 `CancellationToken` 让 `Dispose` 终止重连循环。\n\n**风险2：`SendAsync` 并发调用不安全 + 状态检查存在 TOCTOU**\n`ClientWebSocket` 不允许并发执行 `SendAsync`（会抛 `InvalidOperationException`）；同时 `IsConnected` 检查与 `SendAsync` 之间连接可能被断开，检查失效。\n- 证据：WebSocketClient.cs:24-29、WebSocketClient.cs:16\n\n改进建议：增加 `SemaphoreSlim` 串行化发送；发送前对状态做防御性判断并在异常时抛出明确业务异常，或将发送封装为入队-单消费者模型。\n\n**风险3：`Dispose` 与接收循环竞态，产生未观察异常**\n`ReceiveLoopAsync` 以 `_ =` fire-and-forget 启动（WebSocketClient.cs:21），若 `Dispose`（WebSocketClient.cs:43）在 `ReceiveAsync` 阻塞时释放 `_socket`，循环内会抛 `ObjectDisposedException`，该异常未被观察且 `ConnectionClosed` 不会触发。\n- 证据：WebSocketClient.cs:21、WebSocketClient.cs:36、WebSocketClient.cs:43\n\n改进建议：为接收循环加 `try/catch/finally` 保证 `ConnectionClosed` 一定触发并吞掉/记录预期异常；`Dispose` 通过 `CancellationTokenSource` 协作式取消，而不是直接释放正在使用的 socket。\n\n补充：`MessageReceived` 处理器若抛异常会中断接收循环且不触发关闭事件（WebSocketClient.cs:38），建议在调用事件处隔离异常。"
+    },
+    {
+      "taskId": "timer-storm",
+      "title": "定时轮询风险评审",
+      "category": "评审",
+      "tier": 3,
+      "mode": "routed",
+      "pass": true,
+      "score": 0.75,
+      "hits": [
+        "事件驱动",
+        "按需刷新",
+        "重复请求"
+      ],
+      "missed": [
+        "定时器风暴"
+      ],
+      "tokensIn": 6157,
+      "tokensOut": 3702,
+      "cost": 0.0326,
+      "costKnown": false,
+      "ms": 65191,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-pro",
+        "小米 MiMo/mimo-v2.5-pro",
+        "DeepSeek 中转/deepseek-v4-pro(综合)"
+      ],
+      "detail": [
+        {
+          "model": "DeepSeek 中转/deepseek-v4-pro",
+          "pass": false,
+          "rounds": 3,
+          "ms": 3684
+        },
+        {
+          "model": "小米 MiMo/mimo-v2.5-pro",
+          "pass": false,
+          "rounds": 3,
+          "ms": 6045
+        },
+        {
+          "model": "月之暗面 Kimi/kimi-k3",
+          "error": "月之暗面 Kimi/kimi-k3 HTTP 429: {\"error\":{\"message\":\"The engine is currently overloaded, please try again later\",\"type\":\"engine_overloaded_error\"}}"
+        }
+      ],
+      "text": "专家意见评估：  \n- DeepSeek 返回的是一段 `AgentLoopDemo` 工具调用循环代码，与本任务“客户端 5 秒定时轮询列表”无关，无法采纳。  \n- MiMo 仅指出 `TimerService.cs` 中存在 5000ms 定时器，未给出风险分析或替代方案，信息量不足，也无法直接采纳。  \n\n因此以下结论为独立评审意见，不基于上述专家结论。\n\n---\n\n## 一、5 秒全局定时轮询刷新列表的主要风险\n\n### 1. 大量无效重复请求，服务端压力线性放大\n\n固定 5 秒轮询意味着客户端会周期性地请求同一个列表接口，即使数据没有任何变化也会重复拉取。\n\n- 从接口重复请求检测角度看，这类请求的参数、URL 通常完全相同，很容易被网关或拦截器识别为“重复请求”。\n- 如果重复请求检测策略是“相同请求在短时间内只放行一次”，会导致后续正常轮询请求被合并或丢弃，客户端可能拿不到最新数据，甚至出现“列表不刷新”的假象。\n- 如果服务端未做专门优化，客户端数量为 N 时，仅列表接口的固定 QPS 就接近 `N / 5`，且大部分请求是无效重复流量，浪费服务端 CPU、数据库、带宽资源。\n\n### 2. 请求重叠与响应竞态，可能触发防重/限流误判\n\n当接口响应时间超过 5 秒时，前一个请求尚未完成，下一个定时器已经触发，导致同一客户端对同一接口产生并发重复请求。\n\n- 请求重叠会加剧服务端压力，且如果前端有“进行中相同请求复用”的逻辑，第二个请求可能被拦截或复用旧 Promise，导致业务逻辑异常。\n- 响应返回顺序可能乱序：后发请求先返回，先发请求后返回，旧数据可能覆盖新数据，列表出现回退。\n- 在服务端防重或限流机制下，同一客户端在短时间内发出多个相同请求，可能被识别为重复提交或恶意轮询，从而触发限流、风控或误告警。\n\n### 3. 前端资源浪费与用户体验问题\n\n全局定时器在页面不可见、后台标签页、甚至锁屏后仍然持续请求，造成不必要的电量、带宽和 CPU 消耗。\n\n- 对移动端或弱网环境不友好。\n- 固定周期刷新可能打断用户操作，例如用户正在滚动列表、勾选条目或查看详情时，列表突然被刷新导致上下文丢失。\n- 5 秒固定间隔的实时性仍然不足：数据变化后最长需要 5 秒才能被客户端感知，无法满足高时效性要求。\n\n---\n\n## 二、替代方案建议\n\n### 1. 事件驱动：优先替代固定轮询\n\n使用 WebSocket、SSE 或长轮询，由服务端在列表数据变化时主动通知客户端。\n\n- 客户端收到 `list.updated` 事件后再拉取列表，或者服务端直接推送增量数据。\n- 这样可以从根本上消除“无变化仍频繁请求”的问题，大幅降低重复请求。\n- 长轮询可以设置较长的超时时间，服务端在数据变化时立即返回，否则挂起连接，避免 5 秒盲轮询。\n\n### 2. 按需刷新：结合页面可见性和用户操作\n\n仅在确实需要时刷新列表：\n\n- 页面从后台切回前台时刷新；\n- 用户完成增删改操作后刷新；\n- 用户触发下拉刷新或点击刷新按钮时刷新；\n- 使用 `visibilitychange`、`focus` 等事件控制定时器启停，避免不可见时继续请求。\n\n### 3. 版本号 / ETag / 增量拉取\n\n客户端在请求中携带上一次的列表版本号或 `If-None-Match`：\n\n- 服务端比较版本，如果没有变化则返回 `304 Not Modified` 或轻量空响应；\n- 客户端只更新本地缓存，不重新渲染列表；\n- 这样即使保留一定的轮询或刷新机制，也能显著减少有效请求和重复传输。\n\n### 4. 请求合并与单飞控制\n\n如果必须保留轮询或多次刷新，应在客户端做好并发控制：\n\n- 同一列表请求同一时间只允许一个在途请求，后续触发可跳过或等待；\n- 使用 `AbortController` 取消旧请求，避免旧响应覆盖新数据；\n- 对相同 URL、参数的轮询请求做“单飞”合并，减少重复请求到达服务端。\n\n### 5. 配合接口重复请求检测，增加请求标识\n\n在客户端拦截器或服务端防重逻辑中，区分“轮询请求”和“用户主动操作请求”：\n\n- 为每次轮询生成独立 `X-Request-Id` 或 `Idempotency-Key`，避免被通用防重逻辑误判；\n- 服务端可对轮询接口单独设置限流阈值、缓存策略，或将其排除在写操作的防重幂等表之外；\n- 尽量让轮询请求走读接口，并对读接口做缓存，而不是直接穿透到业务库。\n\n---\n\n## 三、结论\n\n5 秒全局定时轮询存在的主要风险是：  \n1. **大量无效重复请求，容易被防重/去重机制误判，并放大服务端压力**；  \n2. **请求重叠、响应乱序，可能导致数据回退和限流误触发**；  \n3. 后台资源浪费和"
+    },
+    {
+      "taskId": "11-timer-sample",
+      "title": "定位定时器服务的间隔与生命周期",
+      "category": "检索",
+      "tier": 1,
+      "mode": "routed",
+      "pass": true,
+      "score": 1,
+      "hits": [
+        "5000",
+        "Start",
+        "Stop"
+      ],
+      "missed": [],
+      "tokensIn": 2657,
+      "tokensOut": 392,
+      "cost": 0.0036,
+      "ms": 2310,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-flash"
+      ],
+      "detail": [],
+      "text": "## 结论\n\n**默认定时器间隔：5000 毫秒**（构造函数默认参数 `intervalMs = 5000`）。\n\n**公开成员：**\n- 构造函数 `TimerService(int intervalMs = 5000)`\n- 事件 `event EventHandler? Tick`\n- 方法 `void Start()`、`void Stop()`、`void Dispose()`\n- 属性 `bool IsRunning`\n\n## 证据路径\n\n- `TimerService.cs:11` — `public TimerService(int intervalMs = 5000)` 默认间隔 5000ms\n- `TimerService.cs:13` — `Interval = TimeSpan.FromMilliseconds(intervalMs)`\n- `TimerService.cs:17` — `public event EventHandler? Tick`\n- `TimerService.cs:19` — `public void Start() => _timer.Start();`\n- `TimerService.cs:20` — `public void Stop() => _timer.Stop();`\n- `TimerService.cs:21` — `public bool IsRunning => _timer.IsEnabled;`\n- `TimerService.cs:25` — `public void Dispose()`"
+    },
+    {
+      "taskId": "12-paging-sample",
+      "title": "分析分页服务的性能策略",
+      "category": "分析",
+      "tier": 2,
+      "mode": "routed",
+      "pass": true,
+      "score": 1,
+      "hits": [
+        "UNION ALL",
+        "分片",
+        "当天"
+      ],
+      "missed": [],
+      "tokensIn": 2872,
+      "tokensOut": 860,
+      "cost": 0.0144,
+      "ms": 10579,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-pro"
+      ],
+      "detail": [],
+      "text": "## 结论\n\n**PagingService 避免大结果集排序的两种手段：**\n\n1. **分片 LIMIT 策略**：按 `shard_id` 分片，每个分片只查询一页（`LIMIT ... OFFSET ...`），避免全表排序。\n2. **动态 UNION ALL 子查询合并**：用 `UNION ALL` 把各分片各自的一页结果拼接后再排序，而不是对全量结果集排序。\n\n**历史记录日期范围默认规则：**\n\n默认按「当天日期」过滤，即 `DateTime.Today`，而不是当前时刻，目的是避免跨日边界漏数据。\n\n## 证据路径\n\n- `PagingService.cs:7` —— 注释：大结果集场景使用分片 LIMIT 策略避免全表排序\n- `PagingService.cs:13` —— 注释：动态 UNION ALL 子查询：每个分片只取一页，再合并排序\n- `PagingService.cs:14-22` —— `BuildPagedSql` 中 `shard_id` 分片 + `LIMIT/OFFSET` + `UNION ALL` 实现\n- `PagingService.cs:10-11` —— 历史记录默认按\"当天日期\"而非当前时刻过滤；`GetDefaultStartOfDay() => DateTime.Today`"
+    },
+    {
+      "taskId": "13-notify-sample",
+      "title": "评审通知服务的重连逻辑",
+      "category": "评审",
+      "tier": 3,
+      "mode": "routed",
+      "pass": true,
+      "score": 0.67,
+      "hits": [
+        "重试",
+        "缓存"
+      ],
+      "missed": [
+        "指数退避"
+      ],
+      "tokensIn": 10573,
+      "tokensOut": 6227,
+      "cost": 0.2994,
+      "costKnown": false,
+      "ms": 76929,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-pro",
+        "小米 MiMo/mimo-v2.5-pro",
+        "月之暗面 Kimi/kimi-k3",
+        "DeepSeek 中转/deepseek-v4-pro(综合)"
+      ],
+      "detail": [
+        {
+          "model": "DeepSeek 中转/deepseek-v4-pro",
+          "pass": false,
+          "rounds": 3,
+          "ms": 2505
+        },
+        {
+          "model": "小米 MiMo/mimo-v2.5-pro",
+          "pass": true,
+          "rounds": 3,
+          "ms": 5037
+        },
+        {
+          "model": "月之暗面 Kimi/kimi-k3",
+          "pass": true,
+          "rounds": 2,
+          "ms": 59645
+        }
+      ],
+      "text": "最终评审结论（父代理综合）\n\n采纳说明：  \n- 以 Kimi 对 NotificationService 的直接评审为核心，因为其风险点最完整，且与给定代码片段行为吻合，覆盖题目要求的“重试策略”和“缓存更新”。  \n- 结合 DeepSeek 的 `WebSocketClient` 与 MiMo 的 `RetryPolicy` 作为底层佐证，判定重连链路和通用重试组件同样存在缺口。  \n- 由于材料未完整展示 `NotificationService.cs`，部分行号无法逐条核对；若实际实现与专家描述不符，以真实代码为准。\n\n---\n\n### 风险点 1：重连/重试策略不可靠，失败被静默吞掉（严重）\n\n**现象与证据**  \n- `NotificationService` 的“重连”没有把真实连接动作放进 `try`，异常不会被捕获，重试计数成为死代码；达到最大重试次数后方法正常返回，调用方无法区分“已连接”和“放弃重连”。  \n- 退避无上限封顶、无抖动，多实例同时重试容易形成惊群；首次连接前也可能存在不必要的延迟；全链路没有 `CancellationToken`，连接过程不可取消。  \n- MiMo 的 `RetryPolicy` 同样缺少取消令牌、最大延迟封顶和随机抖动，只能作为重试组件改造参考，不能直接解决当前问题。  \n- DeepSeek 的 `WebSocketClient` 在 `ConnectionClosed` 后无人重新调用 `ConnectAsync`，所谓“断线自动重连”实际链路断裂。\n\n**改进建议**  \n- 将真实连接调用放入 `try`，确保异常可被捕获并计入重试。  \n- 重试耗尽后，显式抛出异常、返回失败结果或触发 `ConnectionFailed` 事件，禁止静默返回。  \n- 退避策略增加最大延迟上限和随机抖动；首次尝试不应延迟。  \n- 全链路传入 `CancellationToken`，支持取消连接与重试。  \n- `NotificationService` 应订阅底层 `ConnectionClosed` 事件，在断线后重置连接状态并重新进入带退避的重连流程。\n\n---\n\n### 风险点 2：未读数缓存更新非原子，并发下会丢失计数（严重）\n\n**现象与证据**  \n- `Cache.GetUnreadCount() + 1` 再 `SetUnreadCount()` 是“读-改-写”两步操作，`OnMessage` 被多个接收线程并发调用时，多个线程可能读到相同的旧值，导致递增丢失。  \n- 当前只增不清，缺少“已读后重置”的入口，业务上无法正确清零未读数。\n\n**改进建议**  \n- 使用原子递增，例如 `Interlocked.Increment`，或对读改写过程加锁，确保计数操作原子性。  \n- 同时提供 `ResetUnread()` 或等价的重置接口，补齐未读数生命周期管理。\n\n---\n\n### 风险点 3：消息计数无类型过滤、无幂等，事件分发顺序不合理\n\n**现象与证据**  \n- `OnMessage` 对任意 JSON 消息都执行未读数 +1，不区分消息类型；没有消息 ID 去重，重连后服务端重发会导致重复计数。  \n- 先执行计数、后触发事件；若某个订阅者抛异常，计数已经被修改，但剩余订阅者收不到该消息，造成状态污染和分发中断。\n\n**改进建议**  \n- 先解析消息类型和消息 ID，再决定是否累加未读数。  \n- 基于消息 ID 做幂等去重，避免重连重发造成重复计数。  \n- 调整顺序：先完成事件分发，成功后再提交计数；或对每个订阅者单独 `try/catch`，避免单个订阅者异常影响整体。\n\n---\n\n### 风险点 4：底层 WebSocket 接收循环与重连链路存在隐藏缺陷\n\n**现象与证据**  \n- `ReceiveLoopAsync` 被 `_ =` 火忘调用，异常无人观察；一旦循环异常退出，`ConnectionClosed` 虽被触发，但没有上层逻辑恢复连接。  \n- `ReceiveAsync` 返回后未判断 `result.EndOfMessage`，分帧消息会被截断后直接交给上层，导致消息解析错误。  \n- `Dispose` 直接释放 socket，但 `ReceiveLoopAsync` 可能仍在访问已释放对象，存在 `ObjectDisposedException` 风险。\n\n**改进建议**  \n- `ReceiveLoopAsync` 内部增加 `try/catch`，异常时记录日志或触发可观察的失败事件。  \n- 按 `EndOfMessage` 判断消息帧是否完整，重组后再回调上层，避免分帧截断。  \n- 释放 so"
+    },
+    {
+      "taskId": "14-agent-demo",
+      "title": "分析示例 Agent 循环",
+      "category": "分析",
+      "tier": 2,
+      "mode": "routed",
+      "pass": true,
+      "score": 1,
+      "hits": [
+        "6",
+        "required",
+        "auto"
+      ],
+      "missed": [],
+      "tokensIn": 2919,
+      "tokensOut": 409,
+      "cost": 0.0117,
+      "ms": 5602,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-pro"
+      ],
+      "detail": [],
+      "text": "结论：\n\n- **最大轮数**：6 轮（`MaxRounds = 6`）。\n- **首轮工具选择策略**：强制调用工具——首轮 `hasToolResult` 为 `false`，`toolChoice` 取 `\"required\"`；后续轮次才为 `\"auto\"`。\n- **拿到工具结果之后的策略**：\n  - 将工具的 `tool` 消息（含 `tool_call_id` 与 `ExecuteTool` 的返回内容）追加回 `messages`；\n  - 置 `hasToolResult = true`，下轮 `toolChoice` 切换为 `\"auto\"`；\n  - `continue` 继续循环，把完整消息历史再次发送给模型；\n  - 若某轮模型不再产生 `tool_calls`，则返回模型的 `content` 文本；若轮次耗尽仍未结束，返回 `\"(达到轮次上限)\"`。\n\n证据路径：\n- AgentLoopDemo.cs:11（最大轮数）\n- AgentLoopDemo.cs:24（首轮 `required`）\n- AgentLoopDemo.cs:33-42（工具结果追加、切换 `auto` 并继续循环）\n- AgentLoopDemo.cs:43-45（无工具调用返回文本 / 轮次上限兜底）"
+    },
+    {
+      "taskId": "15-namespace-sample",
+      "title": "梳理示例代码库的命名空间结构",
+      "category": "检索",
+      "tier": 2,
+      "mode": "routed",
+      "pass": true,
+      "score": 1,
+      "hits": [
+        "DemoApp.Timers",
+        "DemoApp.Data",
+        "DemoApp.Push",
+        "DemoApp.Agent"
+      ],
+      "missed": [],
+      "tokensIn": 2688,
+      "tokensOut": 983,
+      "cost": 0.0146,
+      "ms": 9285,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-pro"
+      ],
+      "detail": [],
+      "text": "## 结论\n\n示例代码库中共有 **11 个命名空间**，清单如下：\n\n| 命名空间 | 类/类型 | 声明位置 |\n|---|---|---|\n| `DemoApp.Agent` | `AgentLoopDemo`（public sealed class） | AgentLoopDemo.cs:6,9 |\n| `DemoApp.Caching` | `CacheService`（public sealed class）<br>`CacheEntry`（private sealed class，嵌套） | CacheService.cs:4,7,28 |\n| `DemoApp.Charts` | `ChartRenderer`（public sealed class）<br>`DataPoint`（public struct） | ChartRenderer.cs:4,7,34 |\n| `DemoApp.Config` | `ConfigService`（public sealed class） | ConfigService.cs:4,7 |\n| `DemoApp.Logging` | `LogService`（public static class）<br>`LogLevel`（public enum） | LogService.cs:3,6,8 |\n| `DemoApp.Push` | `NotificationService`（public sealed class）<br>`Cache`（internal static class） | NotificationService.cs:4,7,41 |\n| `DemoApp.Orders` | `OrderService`（public sealed class）<br>`OrderStatus`（public enum）<br>`Order`（public class） | OrderService.cs:4,7,12,40 |\n| `DemoApp.Data` | `PagingService`（public sealed class） | PagingService.cs:5,8 |\n| `DemoApp.Resilience` | `RetryPolicy`（public sealed class） | RetryPolicy.cs:4,7 |\n| `DemoApp.Timers` | `TimerService`（public sealed class，实现 `IDisposable`） | TimerService.cs:4,7 |\n| `DemoApp.Network` | `WebSocketClient`（public sealed class，实现 `IDisposable`） | WebSocketClient.cs:4,7 |\n\n**证据路径**（namespace → 类 行号）：\n- AgentLoopDemo.cs:6 → 9\n- CacheService.cs:4 → 7, 28\n- ChartRenderer.cs:4 → 7, 34\n- ConfigService.cs:4 → 7\n- LogService.cs:3 → 6, 8\n- NotificationService.cs:4 → 7, 41\n- OrderService.cs:4 → 7, 12, 40\n- PagingService.cs:5 → 8\n- RetryPolicy.cs:4 → 7\n- TimerService.cs:4 → 7\n- WebSocketClient.cs:4 → 7"
+    },
+    {
+      "taskId": "16-order-service",
+      "title": "定位订单服务的方法与状态",
+      "category": "检索",
+      "tier": 1,
+      "mode": "routed",
+      "pass": true,
+      "score": 1,
+      "hits": [
+        "CreateOrder",
+        "SubmitOrder",
+        "CancelOrder",
+        "OrderStatus"
+      ],
+      "missed": [],
+      "tokensIn": 3033,
+      "tokensOut": 312,
+      "cost": 0.0038,
+      "ms": 1962,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-flash"
+      ],
+      "detail": [],
+      "text": "**OrderService 公开成员**（`OrderService.cs`）：\n\n- 常量 `MaxItemsPerOrder`（=20）：`OrderService.cs:10`\n- 方法 `CreateOrder(string customerId)` → Order：`OrderService.cs:14`\n- 方法 `SubmitOrder(Guid orderId)` → bool：`OrderService.cs:21`\n- 方法 `CancelOrder(Guid orderId)` → bool：`OrderService.cs:29`\n- 方法 `GetOrders(string customerId)` → List\\<Order\\>：`OrderService.cs:37`\n\n**订单状态枚举 `OrderStatus`**（嵌套在 OrderService 内，`OrderService.cs:12`）四个值：\n\n- `Draft`\n- `Submitted`\n- `Paid`\n- `Cancelled`"
+    },
+    {
+      "taskId": "17-config-source",
+      "title": "配置服务的加载来源",
+      "category": "检索",
+      "tier": 1,
+      "mode": "routed",
+      "pass": true,
+      "score": 1,
+      "hits": [
+        "appsettings.json",
+        "环境变量"
+      ],
+      "missed": [],
+      "tokensIn": 2698,
+      "tokensOut": 307,
+      "cost": 0.0034,
+      "ms": 1969,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-flash"
+      ],
+      "detail": [],
+      "text": "**结论**\n\nConfigService 从两个来源加载配置：\n1. **JSON 文件**：通过 `LoadFromFile(string path = DefaultConfigFile)`（ConfigService.cs:12），默认配置文件为 **`appsettings.json`**（常量 `DefaultConfigFile`，ConfigService.cs:10）。\n2. **环境变量覆盖**：通过 `ApplyEnvironmentOverrides()`（ConfigService.cs:18），环境变量 `APP_XXX` 覆盖同名配置项（ConfigService.cs:20 注释）。\n\n**证据路径**\n- ConfigService.cs:7 类定义，注释“支持 JSON 文件 + 环境变量覆盖”\n- ConfigService.cs:10 `public const string DefaultConfigFile = \"appsettings.json\";`\n- ConfigService.cs:12-16 `LoadFromFile` 加载 JSON\n- ConfigService.cs:18-22 `ApplyEnvironmentOverrides` 应用环境变量覆盖"
+    },
+    {
+      "taskId": "18-chart-render",
+      "title": "图表渲染器的性能常量",
+      "category": "检索",
+      "tier": 1,
+      "mode": "routed",
+      "pass": true,
+      "score": 1,
+      "hits": [
+        "MaxPointsPerFrame",
+        "DownsampleThreshold",
+        "50000"
+      ],
+      "missed": [],
+      "tokensIn": 3555,
+      "tokensOut": 260,
+      "cost": 0.0042,
+      "ms": 1392,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-flash"
+      ],
+      "detail": [],
+      "text": "ChartRenderer 定义了 2 个性能相关常量：\n\n- `MaxPointsPerFrame = 10000` — 每帧最大渲染点数（ChartRenderer.cs:9）\n- `DownsampleThreshold = 50000` — 触发抽稀采样的点数阈值，超过即每 2 点取 1 个（ChartRenderer.cs:10，使用位置 ChartRenderer.cs:18）"
+    },
+    {
+      "taskId": "19-log-level",
+      "title": "日志服务的级别与滚动",
+      "category": "检索",
+      "tier": 1,
+      "mode": "routed",
+      "pass": true,
+      "score": 1,
+      "hits": [
+        "Debug",
+        "Info",
+        "Warn",
+        "Error",
+        "MaxLogFileSizeBytes"
+      ],
+      "missed": [],
+      "tokensIn": 2605,
+      "tokensOut": 311,
+      "cost": 0.0034,
+      "ms": 2064,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-flash"
+      ],
+      "detail": [],
+      "text": "**结论：**\n\n- **日志级别数量**：4 个 — `Debug`、`Info`、`Warn`、`Error`（`LogService.cs:8`）\n- **默认最小级别**：`Info`（`MinLevel` 默认值，`LogService.cs:10`）\n- **日志文件滚动大小**：10MB（`10 * 1024 * 1024` 字节，`LogService.cs:11`）\n\n**证据路径：**\n- `LogService.cs:8` — `public enum LogLevel { Debug, Info, Warn, Error }`\n- `LogService.cs:10` — `public static LogLevel MinLevel { get; set; } = LogLevel.Info;`\n- `LogService.cs:11` — `public const int MaxLogFileSizeBytes = 10 * 1024 * 1024; // 10MB 滚动`"
+    },
+    {
+      "taskId": "20-retry-policy",
+      "title": "重试策略的参数",
+      "category": "检索",
+      "tier": 1,
+      "mode": "routed",
+      "pass": true,
+      "score": 1,
+      "hits": [
+        "MaxRetryCount",
+        "3",
+        "BaseDelayMs",
+        "200"
+      ],
+      "missed": [],
+      "tokensIn": 2443,
+      "tokensOut": 202,
+      "cost": 0.003,
+      "ms": 1358,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-flash"
+      ],
+      "detail": [],
+      "text": "**结论：** 最大重试次数 3 次；基础延迟 200ms；退避策略为指数退避（每次重试延迟 = 200ms × 2^(attempt-1)，即 200/400/800ms）。\n\n**证据路径：** RetryPolicy.cs:9（MaxRetryCount=3）、RetryPolicy.cs:10（BaseDelayMs=200）、RetryPolicy.cs:24（指数退避计算）。"
+    },
+    {
+      "taskId": "21-cache-service",
+      "title": "缓存服务的键规则",
+      "category": "检索",
+      "tier": 1,
+      "mode": "routed",
+      "pass": true,
+      "score": 1,
+      "hits": [
+        "app:cache:",
+        "DefaultTtlSeconds",
+        "ConcurrentDictionary"
+      ],
+      "missed": [],
+      "tokensIn": 2789,
+      "tokensOut": 284,
+      "cost": 0.0035,
+      "ms": 1738,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-flash"
+      ],
+      "detail": [],
+      "text": "**结论**（CacheService.cs）：\n\n- **缓存键前缀**：`\"app:cache:\"`（`CacheService.cs:10`，常量 `KeyPrefix`）\n- **默认 TTL**：60 秒（`CacheService.cs:9`，常量 `DefaultTtlSeconds`）\n- **存储结构**：`ConcurrentDictionary<string, CacheEntry>`（`CacheService.cs:12`），线程安全的内存字典；值为内部类 `CacheEntry`（`CacheService.cs:28-33`），含 `Value`（object）与 `ExpiresAt`（DateTime，用于判断是否过期）。\n\n访问键由 `KeyPrefix + key` 组成（`CacheService.cs:16`）。"
+    },
+    {
+      "taskId": "22-ws-client",
+      "title": "WebSocket 客户端参数",
+      "category": "检索",
+      "tier": 1,
+      "mode": "routed",
+      "pass": true,
+      "score": 1,
+      "hits": [
+        "ReconnectIntervalMs",
+        "3000",
+        "ReceiveBufferSize",
+        "8192"
+      ],
+      "missed": [],
+      "tokensIn": 2657,
+      "tokensOut": 184,
+      "cost": 0.0031,
+      "ms": 1435,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-flash"
+      ],
+      "detail": [],
+      "text": "结论：`WebSocketClient`（`WebSocketClient.cs:7`）的重连间隔为 **3000 毫秒**，接收缓冲区大小为 **8192 字节**。\n\n证据路径：`WebSocketClient.cs:9` `ReconnectIntervalMs = 3000`；`WebSocketClient.cs:10` `ReceiveBufferSize = 8192`。"
+    },
+    {
+      "taskId": "23-event-list",
+      "title": "查找全部事件定义",
+      "category": "检索",
+      "tier": 1,
+      "mode": "routed",
+      "pass": true,
+      "score": 1,
+      "hits": [
+        "TimerService",
+        "NotificationService",
+        "ChartRenderer",
+        "WebSocketClient"
+      ],
+      "missed": [],
+      "tokensIn": 4186,
+      "tokensOut": 532,
+      "cost": 0.0055,
+      "ms": 2275,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-flash"
+      ],
+      "detail": [],
+      "text": "共找到 5 个 event 声明，分布在 4 个类中：\n\n| 类（命名空间） | 事件名 | 签名 | 位置 |\n|---|---|---|---|\n| `ChartRenderer`（DemoApp.Charts） | `RenderRequested` | `EventHandler?` | ChartRenderer.cs:13 |\n| `NotificationService`（DemoApp.Push） | `MessageReceived` | `EventHandler<string>?` | NotificationService.cs:12 |\n| `TimerService`（DemoApp.Timers） | `Tick` | `EventHandler?` | TimerService.cs:17 |\n| `WebSocketClient`（DemoApp.Network） | `MessageReceived` | `EventHandler<string>?` | WebSocketClient.cs:13 |\n| `WebSocketClient`（DemoApp.Network） | `ConnectionClosed` | `EventHandler?` | WebSocketClient.cs:14 |\n\n证据路径：上述 grep 命中即声明行，并通过读取对应文件确认类名与命名空间。"
+    },
+    {
+      "taskId": "24-order-const",
+      "title": "定位订单服务的常量",
+      "category": "检索",
+      "tier": 1,
+      "mode": "routed",
+      "pass": true,
+      "score": 1,
+      "hits": [
+        "MaxItemsPerOrder",
+        "20"
+      ],
+      "missed": [],
+      "tokensIn": 2762,
+      "tokensOut": 184,
+      "cost": 0.0033,
+      "ms": 1480,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-flash"
+      ],
+      "detail": [],
+      "text": "**结论：** 常量名为 `MaxItemsPerOrder`，值为 `20`。\n\n**证据：** `OrderService.cs:10` — `public const int MaxItemsPerOrder = 20;`"
+    },
+    {
+      "taskId": "25-sealed-static",
+      "title": "查找 sealed 与 static 类",
+      "category": "检索",
+      "tier": 1,
+      "mode": "routed",
+      "pass": true,
+      "score": 0.5,
+      "hits": [
+        "sealed 类",
+        "static 类"
+      ],
+      "missed": [
+        "sealed class",
+        "static class"
+      ],
+      "tokensIn": 4104,
+      "tokensOut": 584,
+      "cost": 0.0055,
+      "ms": 2857,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-flash"
+      ],
+      "detail": [],
+      "text": "## 结论\n\n**sealed 类（11 个）**：\n- 顶层：`AgentLoopDemo`、`CacheService`、`ChartRenderer`、`ConfigService`、`NotificationService`、`OrderService`、`PagingService`、`RetryPolicy`、`TimerService`、`WebSocketClient`\n- 嵌套：`CacheService.CacheEntry`\n\n**static 类（2 个）**：\n- `LogService`（public static）、`NotificationService.Cache`（internal static）\n\n## 证据路径\n- sealed：AgentLoopDemo.cs:9、CacheService.cs:7 与 :28、ChartRenderer.cs:7、ConfigService.cs:7、NotificationService.cs:7、OrderService.cs:7、PagingService.cs:8、RetryPolicy.cs:7、TimerService.cs:7、WebSocketClient.cs:7\n- static：LogService.cs:6、NotificationService.cs:41"
+    },
+    {
+      "taskId": "26-order-flow",
+      "title": "分析订单状态机",
+      "category": "分析",
+      "tier": 2,
+      "mode": "routed",
+      "pass": true,
+      "score": 1,
+      "hits": [
+        "Draft",
+        "Submitted",
+        "Paid",
+        "Cancelled"
+      ],
+      "missed": [],
+      "tokensIn": 2688,
+      "tokensOut": 689,
+      "cost": 0.0127,
+      "ms": 10885,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-pro"
+      ],
+      "detail": [],
+      "text": "结论：\n\n**允许的状态转换**\n- `Draft → Submitted`：`SubmitOrder` 仅当订单存在且当前状态为 `Draft` 时允许（OrderService.cs:21-27）。\n- `→ Cancelled`：`CancelOrder` 允许从任何非 `Paid` 状态转换到 `Cancelled`，包括 `Draft`、`Submitted`、以及已是 `Cancelled`（重复取消也返回 true），因为只排除了 `Paid`（OrderService.cs:29-35）。\n- `CreateOrder` 创建订单时初始状态为 `Draft`（OrderService.cs:14-19）。\n\n**禁止的状态转换**\n- `Submitted → Draft`：`SubmitOrder` 不满足 `Status == Draft` 时返回 false（OrderService.cs:24）。\n- `Paid → Cancelled`：`CancelOrder` 显式禁止取消已支付订单（OrderService.cs:32）。\n- 本服务没有任何代码将状态设为 `Paid`，`Paid` 只能来自外部（如支付流程），当前示例中不可达。\n- 没有 `Submitted → Paid` 的转换方法。\n\n**CancelOrder 失败（返回 false）的情况**\n1. 订单不存在（`order == null`，OrderService.cs:32）。\n2. 订单状态为 `Paid`（`order.Status == OrderStatus.Paid`，OrderService.cs:32）。\n\n证据路径：\n- OrderService.cs:12 — 枚举 `OrderStatus { Draft, Submitted, Paid, Cancelled }`\n- OrderService.cs:16 — `CreateOrder` 初始 `Draft`\n- OrderService.cs:24 — `SubmitOrder` 仅 `Draft → Submitted`\n- OrderService.cs:32 — `CancelOrder` 对 `Paid` 返回 false\n- OrderService.cs:33 — 其余状态置为 `Cancelled`"
+    },
+    {
+      "taskId": "27-notify-analyze",
+      "title": "分析通知服务逻辑",
+      "category": "分析",
+      "tier": 2,
+      "mode": "routed",
+      "pass": true,
+      "score": 1,
+      "hits": [
+        "GetUnreadCount",
+        "SetUnreadCount",
+        "MessageReceived"
+      ],
+      "missed": [],
+      "tokensIn": 2732,
+      "tokensOut": 349,
+      "cost": 0.0107,
+      "ms": 4764,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-pro"
+      ],
+      "detail": [],
+      "text": "结论：`NotificationService.OnMessage` 收到消息后，除了触发 `MessageReceived` 事件，还会更新未读数缓存——将本地缓存未读数加 1。未读数缓存的更新方式是：通过内部静态类 `Cache` 的 `GetUnreadCount()` 读取当前值，加 1 后调用 `SetUnreadCount(...)` 写回；`Cache` 内部用静态字段 `_unread` 保存未读数。\n\n证据路径：\n- NotificationService.cs:33-38（`OnMessage` 中先 `Cache.GetUnreadCount() + 1`、`Cache.SetUnreadCount(cache)`，再 `MessageReceived?.Invoke`）\n- NotificationService.cs:41-46（`Cache` 静态类，`_unread` 静态字段与 `Get/SetUnreadCount`）"
+    },
+    {
+      "taskId": "28-render-perf",
+      "title": "分析图表渲染性能策略",
+      "category": "分析",
+      "tier": 2,
+      "mode": "routed",
+      "pass": true,
+      "score": 1,
+      "hits": [
+        "Downsample",
+        "抽稀",
+        "MaxPointsPerFrame"
+      ],
+      "missed": [],
+      "tokensIn": 4314,
+      "tokensOut": 567,
+      "cost": 0.0171,
+      "ms": 8369,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-pro"
+      ],
+      "detail": [],
+      "text": "结论：ChartRenderer 通过**阈值触发抽稀 + 事件驱动局部重绘**控制大数据量渲染开销，但当前实现的抽稀策略是简单的“每 2 点取 1 个”，且重绘并未真正利用 MaxPointsPerFrame 做分帧。\n\n具体机制：\n- 设置两个阈值常量：`DownsampleThreshold = 50000` 触发抽稀，`MaxPointsPerFrame = 10000`（名义上的单帧上限）。\n- 每次 `AddPoints` 追加数据后，若点数超过 50000 就调用 `Downsample()`。\n- 抽稀策略：从末尾倒序遍历，`i -= 2`，每 2 个点删除 1 个（即保留一半，约从 N 点降到 N/2 点），注释称“保持趋势”。属于等间隔固定步长抽稀，非 LTTB 等自适应算法。\n- 渲染开销控制：通过 `RenderRequested` 事件通知外部重绘，而不是直接绘制；抽稀后点数减半，间接降低每帧绘制压力。\n- 注意：`MaxPointsPerFrame` 仅声明，未在代码中被读取或用于分帧渲染（grep 无其他引用）。\n\n证据路径：\n- ChartRenderer.cs:6（注释：抽稀采样 + 局部重绘）\n- ChartRenderer.cs:9-10（阈值常量）\n- ChartRenderer.cs:15-23（AddPoints 触发抽稀和重绘）\n- ChartRenderer.cs:27-31（Downsample 抽稀实现）"
+    },
+    {
+      "taskId": "29-retry-review",
+      "title": "评审重试策略风险",
+      "category": "评审",
+      "tier": 3,
+      "mode": "routed",
+      "pass": true,
+      "score": 1,
+      "hits": [
+        "指数",
+        "重试",
+        "MaxRetryCount"
+      ],
+      "missed": [],
+      "tokensIn": 8563,
+      "tokensOut": 5483,
+      "cost": 0.1432,
+      "costKnown": false,
+      "ms": 79850,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-pro",
+        "小米 MiMo/mimo-v2.5-pro",
+        "月之暗面 Kimi/kimi-k3",
+        "DeepSeek 中转/deepseek-v4-pro(综合)"
+      ],
+      "detail": [
+        {
+          "model": "DeepSeek 中转/deepseek-v4-pro",
+          "pass": false,
+          "rounds": 3,
+          "ms": 18438
+        },
+        {
+          "model": "小米 MiMo/mimo-v2.5-pro",
+          "pass": false,
+          "rounds": 3,
+          "ms": 5820
+        },
+        {
+          "model": "月之暗面 Kimi/kimi-k3",
+          "pass": false,
+          "rounds": 3,
+          "ms": 13765
+        }
+      ],
+      "text": "父代理综合结论：\n\n**采纳理由**：仅 DeepSeek 中转片段提供了 RetryPolicy 的具体实现和行号，能够支撑风险判断；小米片段只给出类名，月暗片段是 OrderService，均与重试逻辑无关，不作为评审依据。以下结论基于 DeepSeek 中转片段及静态推断。\n\n---\n\n### 风险 1：重试覆盖范围过宽，可能重试不可恢复异常\n\n`RetryPolicy.cs:21` 使用：\n\n```csharp\ncatch (Exception ex) when (attempt < MaxRetryCount)\n```\n\n这表示所有 `Exception` 都会进入重试分支，包括：\n\n- 业务/参数错误：`ArgumentException`、`InvalidOperationException`\n- 编程错误：`NullReferenceException`、`IndexOutOfRangeException`\n- 致命异常：`OutOfMemoryException`、`AccessViolationException` 等\n\n这类异常通常不是瞬时故障，重试 3 次不会成功，只会增加延迟、放大问题，并可能掩盖真正的 bug。\n\n**建议**：  \n只对可重试的瞬时异常进行重试，例如 `HttpRequestException`、`SocketException`、`TimeoutException`、数据库死锁等。可以通过白名单或传递 `Func<Exception, bool> isTransient` 谓词来决定是否重试。\n\n---\n\n### 风险 2：指数退避缺少最大延迟上限和随机抖动\n\n`RetryPolicy.cs:24`：\n\n```csharp\nint delayMs = BaseDelayMs * (int)Math.Pow(2, attempt - 1);\n```\n\n当前 `MaxRetryCount = 3` 时，最大单次退避为 800ms，风险尚不明显。但该公式没有：\n\n- 最大延迟封顶：一旦将 `MaxRetryCount` 调大，延迟会指数级增长。\n- 随机抖动：多实例并发重试时，会在相同时间点同时重试，容易形成“惊群效应”，继续冲击下游。\n\n**建议**：  \n增加最大延迟上限，并加入随机抖动。例如：\n\n```csharp\nint exponentialDelay = BaseDelayMs * (1 << attempt);\nint delayMs = Math.Min(exponentialDelay, MaxDelayMs);\ndelayMs += Random.Shared.Next(-delayMs / 10, delayMs / 10); // ±10% jitter\nawait Task.Delay(Math.Max(0, delayMs));\n```\n\n---\n\n### 风险 3：无限重试/无上限异常风险\n\n从可见片段只能看到 filter：\n\n```csharp\nwhen (attempt < MaxRetryCount)\n```\n\n但无法确认 `attempt` 是否在 catch 中正确递增。如果 `attempt` 没有递增或重置，filter 将始终为真，导致无限重试，直到成功或进程崩溃。\n\n另外，捕获所有 `Exception` 也意味着将一些进程级异常纳入重试范围，形成事实上的“无上限异常”重试风险。\n\n**建议**：\n\n- 明确在 `catch` 块内对 `attempt++`，并在循环外初始化。\n- 避免捕获致命异常，如 `OutOfMemoryException`、`StackOverflowException`、`AccessViolationException`。\n- 可设置总重试耗时上限，例如累计延迟不超过 5 秒。\n- 若场景复杂，建议使用成熟的重试库，如 Polly，避免手写重试逻辑引入边界错误。\n\n---\n\n**总结**：当前示例重试逻辑的核心问题是“捕获范围过宽 + 退避策略不健壮 + 重试次数/异常边界控制不足”。至少应限制可重试异常类型，为退避设置最大延迟和抖动，并确保重试计数器严格递增、避免无限重试。"
+    },
+    {
+      "taskId": "30-ws-review",
+      "title": "评审 WebSocket 客户端",
+      "category": "评审",
+      "tier": 3,
+      "mode": "routed",
+      "pass": true,
+      "score": 1,
+      "hits": [
+        "重连",
+        "连接",
+        "ReconnectIntervalMs"
+      ],
+      "missed": [],
+      "tokensIn": 6038,
+      "tokensOut": 5784,
+      "cost": 0.0448,
+      "costKnown": false,
+      "ms": 95289,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-pro",
+        "小米 MiMo/mimo-v2.5-pro",
+        "DeepSeek 中转/deepseek-v4-pro(综合)"
+      ],
+      "detail": [
+        {
+          "model": "DeepSeek 中转/deepseek-v4-pro",
+          "pass": true,
+          "rounds": 3,
+          "ms": 14537
+        },
+        {
+          "model": "小米 MiMo/mimo-v2.5-pro",
+          "pass": true,
+          "rounds": 3,
+          "ms": 8030
+        },
+        {
+          "model": "月之暗面 Kimi/kimi-k3",
+          "error": "月之暗面 Kimi/kimi-k3 HTTP 429: {\"error\":{\"message\":\"The engine is currently overloaded, please try again later\",\"type\":\"engine_overloaded_error\"}}"
+        }
+      ],
+      "text": "综合两位专家证据，**收敛度最高的风险集中在两点**：  \n1. `WebSocketClient` 中共享 `_socket` 实例的**线程安全**问题；  \n2. 断线重连策略的**退避与取消机制**不够稳健。  \n以下结合片段给出至少两处风险及改进建议，并说明采纳理由。\n\n---\n\n## 风险一：共享 `_socket` 实例被多线程并发访问，存在线程安全与竞态\n\n**证据**  \n- `WebSocketClient.cs` 中 `private ClientWebSocket _socket = new();`  \n- `IsConnected => _socket.State == WebSocketState.Open;`  \n- `SendAsync(...)` 与接收循环都在直接使用 `_socket`，且大概率不在同一线程串行执行。\n\n`ClientWebSocket` 本身不是线程安全的。若一个线程正在 `SendAsync`，另一个线程读取 `_socket.State` 或重连时替换 `_socket`，可能出现：  \n- 旧实例已被释放/关闭但仍被 `SendAsync` 或状态判断使用，抛出 `ObjectDisposedException`；  \n- `IsConnected` 读到旧引用，状态判断失真；  \n- 多个发送方同时调用 `SendAsync`，触发 `InvalidOperationException`。\n\n**改进建议**  \n- 用 `lock` 或 `SemaphoreSlim` 串行化 `SendAsync`、重连和状态判断，或把所有发送放入队列由单一发送循环处理。  \n- 接收循环独立运行，通过 `Channel<T>` 或 `ConcurrentQueue<T>` 与发送方解耦。  \n- 重连替换 `_socket` 时，先在锁内完成旧实例 `Dispose`，再赋新实例，避免读线程拿到旧对象。  \n- 状态判断不要直接暴露底层 `_socket.State`，可封装为带锁的属性或在锁内读取后返回。\n\n---\n\n## 风险二：断线重连退避策略缺少上限/抖动/取消，可能造成重连风暴或线程竞态\n\n**证据**  \n- `WebSocketClient.cs` 中只看到 `ReconnectIntervalMs = 3000` 固定间隔；  \n- 小米专家补充的 `NotificationService.cs` 中使用了 `Math.Pow(2, _retryCount)` 指数退避，但未见封顶和取消令牌；`_retryCount` 字段在没有同步的情况下被多个路径读写，线程不安全。\n\n若 WebSocketClient 采用类似固定 3 秒重连或未封顶指数退避：  \n- 服务端短暂不可用时，大量客户端同时按固定间隔重试，可能形成重连风暴；  \n- 指数退避如果无限增长，重试间隔会变得过长；  \n- 若重连循环没有 `CancellationToken`，在 `Dispose` 或程序退出时无法停止。\n\n**改进建议**  \n- 使用指数退避 + 随机抖动，并设置上下限，例如 `min = 1s`，`max = 30s`。  \n- 重连循环必须传入 `CancellationToken`，并在 `Dispose` 时取消。  \n- 对 `_retryCount` 等计数使用 `Interlocked.Increment/Exchange` 或锁保护，避免并发读改写。  \n- 统一重试策略：当前 `NotificationService` 中 `MaxRetry = 5`，`RetryPolicy` 中 `MaxRetryCount = 3`，建议收敛到一处，避免不同模块策略不一致。\n\n---\n\n## 风险三（补充）：`SendAsync` 使用 `CancellationToken.None`，发送操作可能无限挂起\n\n**证据**  \n- `WebSocketClient.cs:28`：  \n  `await _socket.SendAsync(bytes, WebSocketMessageType.Text, true, System.Threading.CancellationToken.None);`\n\n当连接半开或服务端无响应时，发送可能长时间不返回，导致调用方线程被占住，甚至影响重连时序。\n\n**改进建议**  \n- 为 `SendAsync` 传入与连接生命周期绑定的 `CancellationToken`，或使用 `CancellationTokenSource.CancelAfter(TimeSpan.FromSeconds(5))` 设置发送超时。  \n-"
+    }
+  ],
+  "aggregates": {
+    "flash-only": {
+      "tasks": 21,
+      "passRate": 0.86,
+      "totalCost": 0.1131,
+      "costKnownAll": false,
+      "avgMs": 3581,
+      "totalTokensIn": 81670,
+      "totalTokensOut": 13411
+    },
+    "pro-only": {
+      "tasks": 21,
+      "passRate": 0.9,
+      "totalCost": 0.2949,
+      "costKnownAll": false,
+      "avgMs": 6923,
+      "totalTokensIn": 68547,
+      "totalTokensOut": 12868
+    },
+    "routed": {
+      "tasks": 21,
+      "passRate": 1,
+      "totalCost": 0.6435,
+      "costKnownAll": false,
+      "avgMs": 18456,
+      "totalTokensIn": 83033,
+      "totalTokensOut": 28605
+    }
+  }
+}
