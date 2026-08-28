@@ -1,6 +1,4 @@
 .env
-results/*.json
-report.html
 node_modules/
 
 scripts/run-local.ps1

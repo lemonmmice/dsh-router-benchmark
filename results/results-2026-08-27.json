@@ -1,0 +1,527 @@
+{
+  "generatedAt": "2026-08-27T11:08:17.394Z",
+  "modes": [
+    "flash-only",
+    "pro-only",
+    "routed"
+  ],
+  "tasks": [
+    {
+      "taskId": "timer-storm",
+      "title": "定时轮询风险评审",
+      "category": "评审",
+      "tier": 3,
+      "mode": "flash-only",
+      "pass": false,
+      "score": 0,
+      "hits": [],
+      "missed": [
+        "定时器风暴",
+        "事件驱动",
+        "按需刷新",
+        "重复请求"
+      ],
+      "tokensIn": 6885,
+      "tokensOut": 659,
+      "cost": 0.0085,
+      "ms": 2582,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-flash"
+      ],
+      "detail": [],
+      "text": "TimerService.cs:4: namespace DemoApp.Timers\nTimerService.cs:7: public sealed class TimerService : IDisposable\nTimerService.cs:9: private readonly DispatcherTimer _timer;\nTimerService.cs:11: public TimerService(int intervalMs = 5000)\nTimerService.cs:13: _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(intervalMs) };\nTimerService.cs:14: _timer.Tick += OnTick;\nTimerService.cs:17: public event EventHandler? Tick;\nTimerService.cs:19: public void Start() => _timer.Start();\nTimerService.cs:20: public void Stop() => _timer.Stop();\nTimerService.cs:21: public bool IsRunning => _timer.IsEnabled;\nTimerService.cs:23: private void OnTick(object? sender, EventArgs e) => Tick?.Invoke(this, e);\nTimerService.cs:28: _timer.Tick -= OnTick;"
+    },
+    {
+      "taskId": "11-timer-sample",
+      "title": "定位定时器服务的间隔与生命周期",
+      "category": "检索",
+      "tier": 1,
+      "mode": "flash-only",
+      "pass": true,
+      "score": 1,
+      "hits": [
+        "5000",
+        "Start",
+        "Stop"
+      ],
+      "missed": [],
+      "tokensIn": 2597,
+      "tokensOut": 364,
+      "cost": 0.0035,
+      "ms": 2113,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-flash"
+      ],
+      "detail": [],
+      "text": "## 结论\n\n**默认定时器间隔：5000 毫秒**\n\n**公开成员：**\n- 构造函数 `TimerService(int intervalMs = 5000)`（默认 5000ms）\n- 事件 `event EventHandler? Tick`\n- 方法 `void Start()`\n- 方法 `void Stop()`\n- 属性 `bool IsRunning`\n- 方法 `void Dispose()`（实现 `IDisposable`）\n\n## 证据路径\n\n- `TimerService.cs:11` — `public TimerService(int intervalMs = 5000)`，默认间隔 5000ms\n- `TimerService.cs:13` — `Interval = TimeSpan.FromMilliseconds(intervalMs)`\n- `TimerService.cs:17` — `public event EventHandler? Tick`\n- `TimerService.cs:19` — `public void Start()`\n- `TimerService.cs:20` — `public void Stop()`\n- `TimerService.cs:21` — `public bool IsRunning`\n- `TimerService.cs:25` — `public void Dispose()`\n- `TimerService.cs:7` — 类声明 `public sealed class TimerService : IDisposable`"
+    },
+    {
+      "taskId": "12-paging-sample",
+      "title": "分析分页服务的性能策略",
+      "category": "分析",
+      "tier": 2,
+      "mode": "flash-only",
+      "pass": true,
+      "score": 1,
+      "hits": [
+        "UNION ALL",
+        "分片",
+        "当天"
+      ],
+      "missed": [],
+      "tokensIn": 2617,
+      "tokensOut": 1033,
+      "cost": 0.0049,
+      "ms": 6829,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-flash"
+      ],
+      "detail": [],
+      "text": "## 结论\n\n**PagingService 避免大结果集排序的两种手段：**\n1. **分片 LIMIT 策略**：按 `shard_id` 将查询拆分为多个分片子查询，每个分片只取一页（`LIMIT {pageSize} OFFSET {offset}`），避免全表扫描排序。\n2. **UNION ALL 合并**：通过动态拼接 `UNION ALL` 将各分片的一页结果合并后再排序（\"每个分片只取一页，再合并排序\"）。\n\n**历史记录日期范围默认规则：**\n- 默认按\"当天日期\"（`DateTime.Today`，即当天零点）而非当前时刻过滤，以避免跨日边界漏数据。\n\n## 证据路径\n\n- 手段一（分片 LIMIT）：`PagingService.cs:7`（注释：分片 LIMIT 策略避免全表排序）、`PagingService.cs:20`（`WHERE shard_id = {i} ORDER BY id LIMIT {pageSize} OFFSET {offset}`）\n- 手段二（UNION ALL 合并）：`PagingService.cs:14`（\"动态 UNION ALL 子查询：每个分片只取一页，再合并排序\"）、`PagingService.cs:19`（`UNION ALL` 拼接）\n- 日期默认规则：`PagingService.cs:10-11`（`GetDefaultStartOfDay() => DateTime.Today`，注释：按\"当天日期\"而非当前时刻过滤，避免跨日边界漏数据）"
+    },
+    {
+      "taskId": "13-notify-sample",
+      "title": "评审通知服务的重连逻辑",
+      "category": "评审",
+      "tier": 3,
+      "mode": "flash-only",
+      "pass": false,
+      "score": 0.33,
+      "hits": [
+        "指数退避"
+      ],
+      "missed": [
+        "重试",
+        "缓存"
+      ],
+      "tokensIn": 5641,
+      "tokensOut": 1790,
+      "cost": 0.0096,
+      "ms": 13974,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-flash"
+      ],
+      "detail": [],
+      "text": "NotificationService.cs:7: public sealed class NotificationService\nNotificationService.cs:9: private int _retryCount;\nNotificationService.cs:14: public bool IsConnected { get; private set; }\nNotificationService.cs:16: public async Task ConnectAsync()\nNotificationService.cs:18: while (!IsConnected && _retryCount < MaxRetry)\nNotificationService.cs:22: await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, _retryCount))); // 指数退避\nNotificationService.cs:23: IsConnected = true;\nNotificationService.cs:24: _retryCount = 0;\nNotificationService.cs:28: _retryCount++;\nNotificationService.cs:33: public void OnMessage(string json)\nNotificationService.cs:35: var cache = Cache.GetUnreadCount() + 1;\nNotificationService.cs:36: Cache.SetUnreadCount(cache);\nNotificationService.cs:41: internal static class Cache"
+    },
+    {
+      "taskId": "14-agent-demo",
+      "title": "分析示例 Agent 循环",
+      "category": "分析",
+      "tier": 2,
+      "mode": "flash-only",
+      "pass": true,
+      "score": 1,
+      "hits": [
+        "6",
+        "required",
+        "auto"
+      ],
+      "missed": [],
+      "tokensIn": 2847,
+      "tokensOut": 612,
+      "cost": 0.0042,
+      "ms": 3186,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-flash"
+      ],
+      "detail": [],
+      "text": "**结论**\n\n1. **最大轮数**：`6`（常量 `MaxRounds = 6`，循环条件 `round <= MaxRounds`）。\n2. **首轮工具选择策略**：强制工具调用——`hasToolResult` 初始为 `false`，因此首轮 `toolChoice = \"required\"`。\n3. **拿到工具结果后的策略**：将每个工具调用结果以 `role=\"tool\"` 追加进消息列表，置 `hasToolResult = true`，`continue` 进入下一轮；下一轮起 `toolChoice` 变为 `\"auto\"`。若模型不再发起 `tool_calls` 则直接返回其 `content`；若一直调用工具直到轮数耗尽，则返回 `\"(达到轮次上限)\"`。\n\n**证据路径**\n- `AgentLoopDemo.cs:11` — `private const int MaxRounds = 6;`\n- `AgentLoopDemo.cs:22` — `for (int round = 1; round <= MaxRounds; round++)`\n- `AgentLoopDemo.cs:21` — `bool hasToolResult = false;`\n- `AgentLoopDemo.cs:24` — `string toolChoice = hasToolResult ? \"auto\" : \"required\"; // 首轮强制工具调用`\n- `AgentLoopDemo.cs:29-42` — 处理 `tool_calls`，追加 tool 结果、`hasToolResult = true; continue;`\n- `AgentLoopDemo.cs:43` — 无工具调用时 `return reply[\"content\"]`\n- `AgentLoopDemo.cs:45` — `return \"(达到轮次上限)\";`"
+    },
+    {
+      "taskId": "15-namespace-sample",
+      "title": "梳理示例代码库的命名空间结构",
+      "category": "检索",
+      "tier": 2,
+      "mode": "flash-only",
+      "pass": true,
+      "score": 1,
+      "hits": [
+        "DemoApp.Timers",
+        "DemoApp.Data",
+        "DemoApp.Push",
+        "DemoApp.Agent"
+      ],
+      "missed": [],
+      "tokensIn": 3785,
+      "tokensOut": 443,
+      "cost": 0.0049,
+      "ms": 2211,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-flash"
+      ],
+      "detail": [],
+      "text": "**结论**：示例代码库共 4 个命名空间、5 个类。\n\n**清单与证据路径**\n\n| 命名空间 | 类 | 位置 |\n|---|---|---|\n| `DemoApp.Agent` | `AgentLoopDemo` | AgentLoopDemo.cs:6, :9 |\n| `DemoApp.Push` | `NotificationService`、`Cache`（internal） | NotificationService.cs:4, :7, :41 |\n| `DemoApp.Data` | `PagingService` | PagingService.cs:5, :8 |\n| `DemoApp.Timers` | `TimerService` | TimerService.cs:4, :7 |\n\n（全仓共 4 个文件，均已逐一读取确认，无其他命名空间/类。）"
+    },
+    {
+      "taskId": "timer-storm",
+      "title": "定时轮询风险评审",
+      "category": "评审",
+      "tier": 3,
+      "mode": "pro-only",
+      "pass": true,
+      "score": 0.75,
+      "hits": [
+        "事件驱动",
+        "按需刷新",
+        "重复请求"
+      ],
+      "missed": [
+        "定时器风暴"
+      ],
+      "tokensIn": 7267,
+      "tokensOut": 1707,
+      "cost": 0.0334,
+      "ms": 22748,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-pro"
+      ],
+      "detail": [],
+      "text": "## 结论\n\n仓库中未发现“客户端模块实际订阅 5 秒定时器刷新列表”的调用点（grep 无 `Tick +=`、无 `Refresh/GetAsync` 等），只有定时器基础服务 `TimerService` 以 5000ms 为默认间隔。基于该实现与仓库现状，5 秒全局轮询刷新列表至少存在以下风险，且应改用事件驱动/按需刷新。\n\n### 风险 1：固定 5 秒全局轮询造成重复请求与响应乱序，缺乏重复请求检测\n- `TimerService` 默认 `intervalMs = 5000`（`TimerService.cs:11`），每个 Tick 只是无脑触发事件（`TimerService.cs:23`），没有任何防重入/请求去重/幂等标识。\n- 若一次刷新耗时超过 5 秒（网络慢、大数据量），下一次 Tick 仍会触发，导致同一接口并发重复请求、旧响应覆盖新响应（乱序），且服务端无请求 ID 去重时会产生重复查询与资源浪费。\n- 证据路径：`TimerService.cs:11`、`TimerService.cs:17`、`TimerService.cs:23`。\n\n### 风险 2：DispatcherTimer 在 UI 线程执行，Tick 内做刷新会阻塞界面\n- 定时器类型为 `DispatcherTimer`（`TimerService.cs:9`），Tick 在 UI 线程触发（`TimerService.cs:13-14`）。如果订阅方在 Tick 里做同步网络/数据库查询或大数据渲染，会卡住 UI。\n- 证据路径：`TimerService.cs:9`、`TimerService.cs:13`、`TimerService.cs:23`。\n\n### 风险 3：全局“盲轮询”与现有推送能力冲突，浪费带宽且列表不可见时仍刷新\n- 仓库已有 `NotificationService`（SignalR 实时推送 + 断线重连 + 本地未读数缓存，见 `NotificationService.cs:6-38`），说明系统具备事件驱动基础。若仍用 5 秒全局轮询，所有列表（含后台/不可见页）每 5 秒都拉一次，属于无效流量，且数据新鲜度受固定周期限制（最长滞后 5 秒）。\n- 证据路径：`NotificationService.cs:6-16`、`NotificationService.cs:33-38`。\n\n### 替代方案\n\n1. **事件驱动（推荐，仓库已有基础）**：复用 `NotificationService` 的 SignalR 推送，客户端订阅 `MessageReceived`（`NotificationService.cs:12`、`NotificationService.cs:37`），收到变更事件再拉取列表，实现“变更即刷新”，消除固定轮询。\n2. **按需刷新**：页面/列表可见时（如 `IsVisible`、激活页签）或用户操作时再刷新；离开视图即停止（调用 `TimerService.Stop()`，`TimerService.cs:20`），而非全局常开。\n3. **轮询改为自适应 + 单飞防重**：如必须轮询，用 `IsRunning`（`TimerService.cs:21`）或 `SemaphoreSlim` 做单飞保护，避免上次未完成就再发；响应带版本号/ETag 或请求 ID，丢弃过期响应，防止乱序覆盖；并做退避/节流（可参照 `NotificationService` 指数退避，`NotificationService.cs:22`）。\n\n### 从接口重复请求检测视角\n应在请求层增加幂等键/请求 ID 与“进行中”标记，服务端按请求 ID 去重；客户端在 Tick 触发时先检查 `IsRunning`（`TimerService.cs:21`），未完成则跳过本次刷新，并在收到响应时按序号/时间戳丢弃过期数据。当前 `TimerService` 仅转发 Tick（`TimerService.cs:23`），完全未提供这类防重机制。"
+    },
+    {
+      "taskId": "11-timer-sample",
+      "title": "定位定时器服务的间隔与生命周期",
+      "category": "检索",
+      "tier": 1,
+      "mode": "pro-only",
+      "pass": true,
+      "score": 1,
+      "hits": [
+        "5000",
+        "Start",
+        "Stop"
+      ],
+      "missed": [],
+      "tokensIn": 2519,
+      "tokensOut": 302,
+      "cost": 0.0098,
+      "ms": 3423,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-pro"
+      ],
+      "detail": [],
+      "text": "结论：\n\n- **默认定时器间隔**：5000 毫秒（构造函数参数 `intervalMs` 默认值）。\n  - 证据：`TimerService.cs:11`，并通过 `TimeSpan.FromMilliseconds(intervalMs)` 设置到 `DispatcherTimer.Interval`（`TimerService.cs:13`）。\n\n- **公开方法**：\n  - `Start()` — 启动定时器，`TimerService.cs:19`\n  - `Stop()` — 停止定时器，`TimerService.cs:20`\n  - `Dispose()` — 停止并解除 Tick 订阅，`TimerService.cs:25`\n  - 公开属性 `IsRunning`（返回 `_timer.IsEnabled`），`TimerService.cs:21`\n  - 公开事件 `Tick`，`TimerService.cs:17`\n\n（构造函数 `TimerService(int intervalMs = 5000)` 也是公开的，`TimerService.cs:11`。）"
+    },
+    {
+      "taskId": "12-paging-sample",
+      "title": "分析分页服务的性能策略",
+      "category": "分析",
+      "tier": 2,
+      "mode": "pro-only",
+      "pass": true,
+      "score": 1,
+      "hits": [
+        "UNION ALL",
+        "分片",
+        "当天"
+      ],
+      "missed": [],
+      "tokensIn": 4275,
+      "tokensOut": 822,
+      "cost": 0.0185,
+      "ms": 6456,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-pro"
+      ],
+      "detail": [],
+      "text": "结论：\n\n1. **PagingService 避免大结果集排序的两种手段**：\n   - **分片（shard）**：通过 `WHERE shard_id = {i}` 把大表按分片拆开，避免对全表排序（PagingService.cs:7、20）。\n   - **每片只取一页的 LIMIT/OFFSET 分页**：每个分片子查询只 `LIMIT {pageSize} OFFSET {offset}`，再用 `UNION ALL` 合并排序，而不是全量查询后排序（PagingService.cs:13-20）。\n\n2. **历史记录日期范围默认规则**：默认按**“当天日期”**（`DateTime.Today`）而非“当前时刻”过滤，避免跨日边界漏数据（PagingService.cs:10-11）。\n\n证据路径：\n- PagingService.cs:7（分片 LIMIT 策略注释）\n- PagingService.cs:13-20（UNION ALL 子查询 + LIMIT/OFFSET 实现）\n- PagingService.cs:10-11（当天日期默认规则）"
+    },
+    {
+      "taskId": "13-notify-sample",
+      "title": "评审通知服务的重连逻辑",
+      "category": "评审",
+      "tier": 3,
+      "mode": "pro-only",
+      "pass": true,
+      "score": 0.67,
+      "hits": [
+        "重试",
+        "缓存"
+      ],
+      "missed": [
+        "指数退避"
+      ],
+      "tokensIn": 2737,
+      "tokensOut": 1474,
+      "cost": 0.0178,
+      "ms": 24293,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-pro"
+      ],
+      "detail": [],
+      "text": "## 评审结论\n\n`NotificationService` 的重连与消息处理存在以下风险点：\n\n### 风险点 1：重试次数耗尽后服务永久失联，无法再恢复\n- **证据**：`NotificationService.cs:18`（`while (!IsConnected && _retryCount < MaxRetry)`）\n- **问题**：连续失败 5 次后 `_retryCount == MaxRetry`，循环退出但未抛出异常、未通知调用方，也未重置 `_retryCount`。之后再次调用 `ConnectAsync()` 时，条件 `_retryCount < MaxRetry` 立即为 false，永远不再尝试连接，形成“永久死连接”状态。\n- **建议**：退出循环时若仍未连接成功，应抛出异常或返回失败状态，并将 `_retryCount` 重置（或采用可恢复的退避调度）；同时记录失败日志。\n\n### 风险点 2：首次连接也强制等待 1 秒（无意义的退避延迟）\n- **证据**：`NotificationService.cs:22`\n- **问题**：首次进入循环时 `_retryCount == 0`，仍执行 `Task.Delay(1s)`，导致初次连接就被延迟；退避本应只发生在“重试”场景。\n- **建议**：先尝试连接，失败后再进入退避等待；或对 `_retryCount == 0` 跳过延迟。\n\n### 风险点 3：未读计数缓存存在并发丢失更新（read-modify-write 非原子）\n- **证据**：`NotificationService.cs:35-36`（`GetUnreadCount() + 1` 后 `SetUnreadCount`）\n- **问题**：`OnMessage` 可能被并发调用，`读-加-写` 不是原子操作，多个线程读到相同旧值后各写回，导致计数少加；且静态 `_unread` 为全局共享，无法区分用户。\n- **建议**：使用 `Interlocked.Increment` 等原子操作，并考虑将缓存改为按用户（或会话）隔离的存储。\n\n### 风险点 4：异常被吞掉且并发重连无保护\n- **证据**：`NotificationService.cs:26`（`catch` 空处理）、`NotificationService.cs:16-30`\n- **问题**：`catch` 捕获所有异常且不记录，掩盖真实故障；若 `ConnectAsync` 被多个调用方并发执行，`_retryCount` 与 `IsConnected` 的读写存在竞态，可能产生多个并发重连循环。\n- **建议**：记录异常上下文；用 `SemaphoreSlim` 或 `Interlocked.CompareExchange` 保证重连过程串行化（幂等）。\n\n### 风险点 5：消息事件处理器异常会中断推送链路\n- **证据**：`NotificationService.cs:37`\n- **问题**：`MessageReceived?.Invoke(...)` 若任一订阅者抛异常，异常沿 `OnMessage` 向上传播，后续订阅者不再收到该消息（缓存已更新但部分订阅者未收到，状态不一致）。\n- **建议**：逐个调用处理器并隔离异常，或使用 `try/catch` 包裹事件触发并记录异常。"
+    },
+    {
+      "taskId": "14-agent-demo",
+      "title": "分析示例 Agent 循环",
+      "category": "分析",
+      "tier": 2,
+      "mode": "pro-only",
+      "pass": true,
+      "score": 1,
+      "hits": [
+        "6",
+        "required",
+        "auto"
+      ],
+      "missed": [],
+      "tokensIn": 2829,
+      "tokensOut": 371,
+      "cost": 0.0112,
+      "ms": 4629,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-pro"
+      ],
+      "detail": [],
+      "text": "结论：\n\n- 最大轮数：6（`AgentLoopDemo.cs:11`，循环条件 `round <= MaxRounds`，见 `AgentLoopDemo.cs:22`）。\n- 首轮工具选择策略：强制工具调用（`toolChoice = \"required\"`，因为初始 `hasToolResult=false`，见 `AgentLoopDemo.cs:21,24`）。\n- 拿到工具结果之后的策略：改为 `\"auto\"`（`AgentLoopDemo.cs:24`），并把工具结果以 `role = \"tool\"` 的消息加入上下文，同时携带 `tool_call_id`（`AgentLoopDemo.cs:33-39`）；若后续模型不再发起工具调用，则直接返回模型内容（`AgentLoopDemo.cs:43`）。\n\n证据路径：\n- `AgentLoopDemo.cs:11`（MaxRounds = 6）\n- `AgentLoopDemo.cs:21-24`（首轮 required / 后续 auto）\n- `AgentLoopDemo.cs:29-43`（有工具调用则执行并追加 tool 消息后继续；无工具调用则返回 content）\n- `AgentLoopDemo.cs:45`（达到轮次上限返回提示）"
+    },
+    {
+      "taskId": "15-namespace-sample",
+      "title": "梳理示例代码库的命名空间结构",
+      "category": "检索",
+      "tier": 2,
+      "mode": "pro-only",
+      "pass": true,
+      "score": 1,
+      "hits": [
+        "DemoApp.Timers",
+        "DemoApp.Data",
+        "DemoApp.Push",
+        "DemoApp.Agent"
+      ],
+      "missed": [],
+      "tokensIn": 5001,
+      "tokensOut": 630,
+      "cost": 0.0196,
+      "ms": 3975,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-pro"
+      ],
+      "detail": [],
+      "text": "## 结论\n\n示例代码库中共有 **4 个命名空间**，每个命名空间包含如下类：\n\n| 命名空间 | 类 | 可见性/修饰符 |\n|---|---|---|\n| `DemoApp.Agent` | `AgentLoopDemo` | `public sealed class` |\n| `DemoApp.Push` | `NotificationService` | `public sealed class` |\n| `DemoApp.Push` | `Cache` | `internal static class` |\n| `DemoApp.Data` | `PagingService` | `public sealed class` |\n| `DemoApp.Timers` | `TimerService` | `public sealed class`（实现 `IDisposable`） |\n\n## 证据路径\n\n- `AgentLoopDemo.cs:6` — `namespace DemoApp.Agent`\n- `AgentLoopDemo.cs:9` — `public sealed class AgentLoopDemo`\n- `NotificationService.cs:4` — `namespace DemoApp.Push`\n- `NotificationService.cs:7` — `public sealed class NotificationService`\n- `NotificationService.cs:41` — `internal static class Cache`\n- `PagingService.cs:5` — `namespace DemoApp.Data`\n- `PagingService.cs:8` — `public sealed class PagingService`\n- `TimerService.cs:4` — `namespace DemoApp.Timers`\n- `TimerService.cs:7` — `public sealed class TimerService : IDisposable`"
+    },
+    {
+      "taskId": "timer-storm",
+      "title": "定时轮询风险评审",
+      "category": "评审",
+      "tier": 3,
+      "mode": "routed",
+      "pass": true,
+      "score": 0.75,
+      "hits": [
+        "事件驱动",
+        "按需刷新",
+        "重复请求"
+      ],
+      "missed": [
+        "定时器风暴"
+      ],
+      "tokensIn": 10182,
+      "tokensOut": 5341,
+      "cost": 0.1395,
+      "costKnown": false,
+      "ms": 52761,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-pro",
+        "小米 MiMo/mimo-v2.5-pro",
+        "月之暗面 Kimi/kimi-k3",
+        "DeepSeek 中转/deepseek-v4-pro(综合)"
+      ],
+      "detail": [
+        {
+          "model": "DeepSeek 中转/deepseek-v4-pro",
+          "pass": true,
+          "rounds": 2,
+          "ms": 39652
+        },
+        {
+          "model": "小米 MiMo/mimo-v2.5-pro",
+          "pass": false,
+          "rounds": 3,
+          "ms": 5272
+        },
+        {
+          "model": "月之暗面 Kimi/kimi-k3",
+          "pass": false,
+          "rounds": 3,
+          "ms": 6262
+        }
+      ],
+      "text": "**结论**：采纳 DeepSeek 意见作为主要结论；MiMo 贴出的 `PagingService` 代码佐证了“列表查询本身成本较高”这一风险；Kimi 无有效意见。\n\n---\n\n## 风险一：固定 5 秒盲刷，慢响应时产生重复请求与请求堆积\n\n客户端 `TimerService` 每 5 秒无条件触发一次刷新。如果列表查询耗时超过 5 秒，例如网络抖动、服务端慢查询或分页 SQL 执行时间过长，上一轮请求尚未完成，下一轮定时器又发起相同查询，就会出现：\n\n- 同一列表接口被并发重复调用；\n- 响应乱序覆盖，旧数据可能覆盖新数据；\n- 请求队列持续堆积，最终放大客户端和服务端压力。\n\n### 从接口重复请求检测视角看\n\n服务端如果按“接口路径 + 请求参数 + 客户端标识 + 时间窗”做重复请求检测，这种每 5 秒完全相同的查询很可能被识别为重复请求，进而被限频或拒绝。  \n但客户端又没有携带 `requestId`、`Idempotency-Key` 或在途去重标志，服务端无法区分“正常轮询”和“重复/重放请求”，结果要么误伤正常刷新，要么客户端持续制造请求风暴。\n\n---\n\n## 风险二：数据未变化也重复请求，昂贵查询被无限放大\n\n固定周期轮询意味着即使列表数据没有任何变化，客户端仍每 5 秒发一次查询。结合 `PagingService.BuildPagedSql` 中多分片 `UNION ALL` 的查询逻辑，每次轮询都会重复执行多分片 SQL，导致数据库连接、带宽和查询负载成倍增加。\n\n### 从接口重复请求检测视角看\n\n这些请求的语义完全相同：同表、同 `pageSize`、同 `offset`，属于典型可去重请求。  \n但客户端没有携带 `version`、`ETag` 或 `Last-Modified` 做条件请求，服务端即使识别为重复请求，也只能“拦截”或“放行”，无法高效告知客户端“数据无变化”。因此，重复请求检测机制在这里只能被动防御，不能从根本上减少无效请求。\n\n---\n\n## 替代方案\n\n### 1. 事件驱动刷新，优先替代固定轮询\n\n仓库中已经存在 SignalR 推送能力，例如 `NotificationService.MessageReceived` 和 `OnMessage` 更新本地缓存。  \n列表数据应改为“服务端数据变更时推送通知，客户端收到通知后再刷新”，而不是每 5 秒无条件轮询。这样可以从源头消除大部分重复请求。\n\n### 2. 按需刷新，避免后台无效请求\n\n在以下时机才刷新列表：\n\n- 页面首次加载；\n- 页面从后台切回前台；\n- 用户主动下拉、翻页或点击刷新；\n- 收到数据变更事件。\n\n同时，当页面不可见或应用进入后台时，调用 `TimerService.Stop()` 停止轮询，避免无意义请求继续发送。\n\n### 3. 条件请求 + 版本号/ETag\n\n如果必须保留轮询作为兜底，可以让客户端在请求中携带上次的 `version` 或 `ETag`。  \n服务端数据未变化时返回 `304 Not Modified` 或空数据，只有实际变化时才返回全量列表。这样重复请求检测可以从“拦截重复”升级为“增量同步”，大幅降低带宽和数据库压力。\n\n### 4. 在途保护 + 幂等键\n\n若仍要保留固定轮询，至少在 Tick 回调中加入“上一轮是否完成”的判断：\n\n- 如果上一轮仍在途，则跳过本次刷新；\n- 每次请求携带 `requestId` 或 `Idempotency-Key`，便于服务端去重和客户端在途去重。\n\n这样可以避免同一接口同时存在多个相同请求，降低重复请求检测误判的概率。\n\n---\n\n**采纳理由**：  \nDeepSeek 的风险分析与替代方案有明确代码定位，且与“接口重复请求检测”视角高度相关，证据最扎实；MiMo 提供的 `PagingService` 代码仅作为“列表查询成本较高”的佐证，无独立结论；Kimi 无有效输出。因此最终以 DeepSeek 结论为主体，并补充了重复请求检测下的具体影响。"
+    },
+    {
+      "taskId": "11-timer-sample",
+      "title": "定位定时器服务的间隔与生命周期",
+      "category": "检索",
+      "tier": 1,
+      "mode": "routed",
+      "pass": true,
+      "score": 1,
+      "hits": [
+        "5000",
+        "Start",
+        "Stop"
+      ],
+      "missed": [],
+      "tokensIn": 2629,
+      "tokensOut": 389,
+      "cost": 0.0035,
+      "ms": 2138,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-flash"
+      ],
+      "detail": [],
+      "text": "**结论**\n\n- 默认定时器间隔：**5000 毫秒**（`TimerService.cs:11`，参数 `int intervalMs = 5000`，构造函数中转为 `TimeSpan.FromMilliseconds(intervalMs)`，`TimerService.cs:13`）\n- 公开成员：\n  - 构造函数 `TimerService(int intervalMs = 5000)` — `TimerService.cs:11`\n  - 事件 `event EventHandler? Tick` — `TimerService.cs:17`\n  - `public void Start()` — `TimerService.cs:19`\n  - `public void Stop()` — `TimerService.cs:20`\n  - `public bool IsRunning`（只读属性，返回 `_timer.IsEnabled`）— `TimerService.cs:21`\n  - `public void Dispose()`（实现 `IDisposable`，类声明于 `TimerService.cs:7`）— `TimerService.cs:25`\n\n**证据路径**\n- 类定义与默认间隔：`TimerService.cs:7`、`TimerService.cs:11`、`TimerService.cs:13`\n- 公开 API：`TimerService.cs:17,19,20,21,25`"
+    },
+    {
+      "taskId": "12-paging-sample",
+      "title": "分析分页服务的性能策略",
+      "category": "分析",
+      "tier": 2,
+      "mode": "routed",
+      "pass": true,
+      "score": 1,
+      "hits": [
+        "UNION ALL",
+        "分片",
+        "当天"
+      ],
+      "missed": [],
+      "tokensIn": 2849,
+      "tokensOut": 869,
+      "cost": 0.0144,
+      "ms": 8672,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-pro"
+      ],
+      "detail": [],
+      "text": "结论：\n\n**PagingService 避免大结果集排序的两种手段**（`PagingService.cs`）：\n1. **分片 LIMIT 策略**：对每个 shard 分别执行 `ORDER BY id LIMIT {pageSize} OFFSET {offset}`，避免对整个大表做全表排序。\n2. **动态 UNION ALL 子查询合并分片**：每个分片只取一页，再通过 `UNION ALL` 合并，避免一次拉取并排序全部数据。\n\n证据：\n- `PagingService.cs:7`（注释：大结果集场景使用分片 LIMIT 策略避免全表排序）\n- `PagingService.cs:13`（注释：动态 UNION ALL 子查询，每个分片只取一页，再合并排序）\n- `PagingService.cs:14-23`（`BuildPagedSql` 实现，循环生成每个 shard 的 `LIMIT/OFFSET` 子查询并以 `UNION ALL` 拼接）\n\n**历史记录日期范围默认规则**：\n- 默认按 **“当天日期”**（`DateTime.Today`，即当天零点）过滤，而非“当前时刻”，以避免跨日边界漏数据。\n\n证据：\n- `PagingService.cs:10`（注释：历史记录默认按“当天日期”而非当前时刻过滤，避免跨日边界漏数据）\n- `PagingService.cs:11`（`GetDefaultStartOfDay() => DateTime.Today`）"
+    },
+    {
+      "taskId": "13-notify-sample",
+      "title": "评审通知服务的重连逻辑",
+      "category": "评审",
+      "tier": 3,
+      "mode": "routed",
+      "pass": true,
+      "score": 1,
+      "hits": [
+        "指数退避",
+        "重试",
+        "缓存"
+      ],
+      "missed": [],
+      "tokensIn": 8416,
+      "tokensOut": 5556,
+      "cost": 0.2245,
+      "costKnown": false,
+      "ms": 57448,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-pro",
+        "小米 MiMo/mimo-v2.5-pro",
+        "月之暗面 Kimi/kimi-k3",
+        "DeepSeek 中转/deepseek-v4-pro(综合)"
+      ],
+      "detail": [
+        {
+          "model": "DeepSeek 中转/deepseek-v4-pro",
+          "pass": false,
+          "rounds": 3,
+          "ms": 9972
+        },
+        {
+          "model": "小米 MiMo/mimo-v2.5-pro",
+          "pass": false,
+          "rounds": 3,
+          "ms": 10351
+        },
+        {
+          "model": "月之暗面 Kimi/kimi-k3",
+          "pass": true,
+          "rounds": 2,
+          "ms": 37857
+        }
+      ],
+      "text": "最终评审结论（综合专家意见，不改代码）\n\n### 一、重连/重试策略形同虚设，且失败后无法恢复\n\n**问题描述**  \n`ConnectAsync` 的 `try` 块内只有 `Task.Delay`，随后无条件将 `IsConnected` 置为 `true`。`Task.Delay` 本身不会模拟或触发连接失败，因此 `catch { _retryCount++; }` 实际是不可达代码，所谓的“指数退避重试”从未真正生效。  \n同时，一旦将来加入真实连接逻辑并失败达到 `MaxRetry`，`_retryCount` 不会复位，后续调用会直接跳过重试，导致服务进入“永久失败”状态。退避值 `Math.Pow(2, _retryCount)` 没有上限、没有随机抖动，首次连接也要等待 1 秒，且整个等待过程无 `CancellationToken`、方法本身非线程安全。\n\n**改进建议**  \n- 将真实连接调用放入 `try` 内，并仅在连接成功后置 `IsConnected = true`。  \n- 失败耗尽后提供显式重置/恢复入口，避免永久失败。  \n- 退避设置上限并加入 jitter（随机抖动），首次尝试立即执行。  \n- 引入 `CancellationToken`，并用 `SemaphoreSlim` 等机制保护并发调用。\n\n---\n\n### 二、未读数缓存读-改-写存在并发丢失\n\n**问题描述**  \n`OnMessage` 中先执行 `Cache.GetUnreadCount() + 1`，再调用 `Cache.SetUnreadCount(cache)`。底层 `Cache` 是普通静态 `int`，无锁、无原子操作。SignalR 消息通常在线程池线程上回调，并发消息到达时可能出现两个线程同时读到同一旧值，各自加 1 后写回，最终只增加 1，导致计数丢失。\n\n**改进建议**  \n- 改用 `Interlocked.Increment` 原子自增，或对缓存更新加锁。  \n- 同时评估静态 `Cache` 的共享范围与生命周期，避免多实例共享、只增不减且无重置路径的问题。\n\n---\n\n### 三、消息处理顺序与幂等性不足\n\n**问题描述**  \n缓存更新发生在 `MessageReceived?.Invoke` 之前。若某个订阅者抛异常，可能导致消息实际未被正确处理，但未读数已增加；异常还会中断后续订阅者的调用并向上传播。  \n此外，消息没有 ID 去重机制，重连后服务端重发同一消息会导致重复计数，与问题一中的重连缺陷叠加进一步放大风险。\n\n**改进建议**  \n- 为消息引入唯一 ID，做幂等去重。  \n- 事件派发时逐订阅者 `try/catch` 隔离异常，避免单个订阅者影响整体。  \n- 明确“计数”与“消息处理成功”之间的时序语义，避免未处理先计数。\n\n---\n\n### 四、连接状态管理不完整\n\n**问题描述**  \n`IsConnected` 只有置 `true` 的路径，没有断开或置 `false` 的逻辑；`OnMessage` 也不校验连接状态。即使连接实际已断开，状态仍可能为“已连接”，且消息仍会被处理。\n\n**改进建议**  \n- 增加断开检测与 `IsConnected = false` 的状态更新。  \n- `OnMessage` 入口校验连接状态，并按业务决定丢弃、缓存或拒绝处理未连接时的消息。\n\n---\n\n### 采纳理由\n\n- **缓存更新风险**：DeepSeek、MiMo、Kimi 三位专家都定位到 `NotificationService.cs:35-36` 的 `GetUnreadCount() + 1` 与 `SetUnreadCount`，结论收敛度最高，因此作为高风险点采纳。  \n- **重试策略风险**：Kimi 给出了完整的逻辑推演——`try` 内只有 `Task.Delay`，`catch` 不可达，重试计数永不复位；该分析具体、可验证，且与代码行为描述一致，予以采纳。  \n- **消息幂等与连接状态**：由 Kimi 提出，其他专家未提出相反意见，且符合 SignalR 与事件驱动编程的常见风险，作为补充风险点采纳。  \n- 前两位专家仅给出代码行号、未展开分析，不足以单独支撑结论；因此最终以 Kimi 的详细评审为主，并用多专家对缓存行号的共同定位来增强可信度。"
+    },
+    {
+      "taskId": "14-agent-demo",
+      "title": "分析示例 Agent 循环",
+      "category": "分析",
+      "tier": 2,
+      "mode": "routed",
+      "pass": true,
+      "score": 1,
+      "hits": [
+        "6",
+        "required",
+        "auto"
+      ],
+      "missed": [],
+      "tokensIn": 2833,
+      "tokensOut": 659,
+      "cost": 0.013,
+      "ms": 7018,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-pro"
+      ],
+      "detail": [],
+      "text": "**结论**\n\n1. **最大轮数**：6 轮（`MaxRounds = 6`）。\n2. **首轮工具选择策略**：强制调用工具（`toolChoice = \"required\"`，首轮 `hasToolResult` 为 `false`）。\n3. **拿到工具结果之后的策略**：把 `hasToolResult` 置为 `true` 后 `continue` 进入下一轮；此后 `toolChoice` 变为 `\"auto\"`（由模型自行决定是否继续调用工具），直到模型不再返回 `tool_calls` 时返回 `reply[\"content\"]`；若达到轮次上限则返回 `\"(达到轮次上限)\"`。\n\n**证据路径**\n\n- AgentLoopDemo.cs:11 — `private const int MaxRounds = 6;`\n- AgentLoopDemo.cs:22 — `for (int round = 1; round <= MaxRounds; round++)`\n- AgentLoopDemo.cs:24 — `string toolChoice = hasToolResult ? \"auto\" : \"required\"; // 首轮强制工具调用`\n- AgentLoopDemo.cs:40-41 — `hasToolResult = true; continue;`\n- AgentLoopDemo.cs:43 — 无工具调用时返回 `reply[\"content\"]`\n- AgentLoopDemo.cs:45 — 达到轮次上限返回 `\"(达到轮次上限)\"`"
+    },
+    {
+      "taskId": "15-namespace-sample",
+      "title": "梳理示例代码库的命名空间结构",
+      "category": "检索",
+      "tier": 2,
+      "mode": "routed",
+      "pass": true,
+      "score": 1,
+      "hits": [
+        "DemoApp.Timers",
+        "DemoApp.Data",
+        "DemoApp.Push",
+        "DemoApp.Agent"
+      ],
+      "missed": [],
+      "tokensIn": 3814,
+      "tokensOut": 531,
+      "cost": 0.0153,
+      "ms": 4311,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-pro"
+      ],
+      "detail": [],
+      "text": "结论：示例代码库中共有 4 个命名空间，包含 5 个类（4 个 public sealed + 1 个 internal static）。\n\n| 命名空间 | 类 | 可见性/修饰符 |\n|---|---|---|\n| `DemoApp.Agent` | `AgentLoopDemo` | public sealed class |\n| `DemoApp.Push` | `NotificationService` | public sealed class |\n| `DemoApp.Push` | `Cache` | internal static class |\n| `DemoApp.Data` | `PagingService` | public sealed class |\n| `DemoApp.Timers` | `TimerService` | public sealed class（实现 `IDisposable`） |\n\n证据路径：\n- `DemoApp.Agent` → `AgentLoopDemo.cs:6-9`\n- `DemoApp.Push` → `NotificationService.cs:4-7`、`NotificationService.cs:41`\n- `DemoApp.Data` → `PagingService.cs:5-8`\n- `DemoApp.Timers` → `TimerService.cs:4-7`"
+    }
+  ],
+  "aggregates": {
+    "flash-only": {
+      "tasks": 6,
+      "passRate": 0.67,
+      "totalCost": 0.0356,
+      "costKnownAll": false,
+      "avgMs": 5149,
+      "totalTokensIn": 24372,
+      "totalTokensOut": 4901
+    },
+    "pro-only": {
+      "tasks": 6,
+      "passRate": 1,
+      "totalCost": 0.1103,
+      "costKnownAll": false,
+      "avgMs": 10921,
+      "totalTokensIn": 24628,
+      "totalTokensOut": 5306
+    },
+    "routed": {
+      "tasks": 6,
+      "passRate": 1,
+      "totalCost": 0.4102,
+      "costKnownAll": false,
+      "avgMs": 22058,
+      "totalTokensIn": 30723,
+      "totalTokensOut": 13345
+    }
+  }
+}
