@@ -1,5 +1,0 @@
-[run-local] keys loaded, starting benchmark...
-
-===== 模式: flash-only =====
-  [FAIL] timer-storm (tier3) score=0 ms=2005 cost=0.0089 | DeepSeek 中转/deepseek-v4-flash
-  [PASS] 11-timer-sample (tier1) score=1 ms=1650 cost=0.0035 | DeepSeek 中转/deepseek-v4-flash
