@@ -7,7 +7,9 @@
   "prompt": "你是只读代码检索助手。在示例代码库中：哪些类声明为 sealed？哪些类是 static？",
   "gold": [
     "sealed class",
-    "static class"
+    "sealed 类",
+    "static class",
+    "static 类"
   ],
   "minGold": 2,
   "rubric": "sealed 与 static 各至少一个"

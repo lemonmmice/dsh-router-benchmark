@@ -4,3 +4,4 @@ node_modules/
 scripts/run-local.ps1
 pilot.log
 scripts/run-pilot.bat
+scripts/run-pilot2.bat

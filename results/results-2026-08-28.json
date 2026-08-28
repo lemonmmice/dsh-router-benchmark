@@ -1,0 +1,115 @@
+{
+  "generatedAt": "2026-08-28T02:48:59.172Z",
+  "modes": [
+    "flash-only",
+    "pro-only",
+    "routed"
+  ],
+  "tasks": [
+    {
+      "taskId": "25-sealed-static",
+      "title": "查找 sealed 与 static 类",
+      "category": "检索",
+      "tier": 1,
+      "mode": "flash-only",
+      "pass": true,
+      "score": 1,
+      "hits": [
+        "sealed class",
+        "sealed 类",
+        "static class",
+        "static 类"
+      ],
+      "missed": [],
+      "tokensIn": 2676,
+      "tokensOut": 696,
+      "cost": 0.0042,
+      "ms": 2790,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-flash"
+      ],
+      "detail": [],
+      "text": "## 结论\n\n**sealed 类（11 个）：**\n| 文件:行 | 声明 |\n|---|---|\n| AgentLoopDemo.cs:9 | `public sealed class AgentLoopDemo` |\n| CacheService.cs:7 | `public sealed class CacheService` |\n| CacheService.cs:28 | `private sealed class CacheEntry`（嵌套） |\n| ChartRenderer.cs:7 | `public sealed class ChartRenderer` |\n| ConfigService.cs:7 | `public sealed class ConfigService` |\n| NotificationService.cs:7 | `public sealed class NotificationService` |\n| OrderService.cs:7 | `public sealed class OrderService` |\n| PagingService.cs:8 | `public sealed class PagingService` |\n| RetryPolicy.cs:7 | `public sealed class RetryPolicy` |\n| TimerService.cs:7 | `public sealed class TimerService : IDisposable` |\n| WebSocketClient.cs:7 | `public sealed class WebSocketClient : IDisposable` |\n\n**static 类（2 个）：**\n| 文件:行 | 声明 |\n|---|---|\n| LogService.cs:6 | `public static class LogService` |\n| NotificationService.cs:41 | `internal static class Cache`（嵌套） |\n\n（仓库根目录共 11 个 `.cs` 文件，全部位于根目录下。）"
+    },
+    {
+      "taskId": "25-sealed-static",
+      "title": "查找 sealed 与 static 类",
+      "category": "检索",
+      "tier": 1,
+      "mode": "pro-only",
+      "pass": false,
+      "score": 0,
+      "hits": [],
+      "missed": [
+        "sealed class",
+        "sealed 类",
+        "static class",
+        "static 类"
+      ],
+      "tokensIn": 2793,
+      "tokensOut": 625,
+      "cost": 0.0127,
+      "ms": 4032,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-pro"
+      ],
+      "detail": [],
+      "text": "## 结论\n\n### 声明为 `sealed` 的类（11 处）\n\n| 类名 | 位置 |\n|------|------|\n| `AgentLoopDemo` | AgentLoopDemo.cs:9 |\n| `CacheService` | CacheService.cs:7 |\n| `CacheEntry`（私有嵌套） | CacheService.cs:28 |\n| `ChartRenderer` | ChartRenderer.cs:7 |\n| `ConfigService` | ConfigService.cs:7 |\n| `NotificationService` | NotificationService.cs:7 |\n| `OrderService` | OrderService.cs:7 |\n| `PagingService` | PagingService.cs:8 |\n| `RetryPolicy` | RetryPolicy.cs:7 |\n| `TimerService`（实现 `IDisposable`） | TimerService.cs:7 |\n| `WebSocketClient`（实现 `IDisposable`） | WebSocketClient.cs:7 |\n\n### 声明为 `static` 的类（2 处）\n\n| 类名 | 位置 |\n|------|------|\n| `LogService`（public） | LogService.cs:6 |\n| `Cache`（internal） | NotificationService.cs:41 |\n\n无 `sealed partial class` 或 `static partial class` 声明。"
+    },
+    {
+      "taskId": "25-sealed-static",
+      "title": "查找 sealed 与 static 类",
+      "category": "检索",
+      "tier": 1,
+      "mode": "routed",
+      "pass": true,
+      "score": 0.5,
+      "hits": [
+        "sealed 类",
+        "static 类"
+      ],
+      "missed": [
+        "sealed class",
+        "static class"
+      ],
+      "tokensIn": 2984,
+      "tokensOut": 540,
+      "cost": 0.0042,
+      "ms": 2150,
+      "models": [
+        "DeepSeek 中转/deepseek-v4-flash"
+      ],
+      "detail": [],
+      "text": "## 结论\n\n### Sealed 类（10 个，含 1 个私有嵌套类）\n- `AgentLoopDemo` — AgentLoopDemo.cs:9\n- `CacheService` — CacheService.cs:7\n- `CacheEntry`（私有嵌套）— CacheService.cs:28\n- `ChartRenderer` — ChartRenderer.cs:7\n- `ConfigService` — ConfigService.cs:7\n- `NotificationService` — NotificationService.cs:7\n- `OrderService` — OrderService.cs:7\n- `PagingService` — PagingService.cs:8\n- `RetryPolicy` — RetryPolicy.cs:7\n- `TimerService`（实现 IDisposable）— TimerService.cs:7\n- `WebSocketClient`（实现 IDisposable）— WebSocketClient.cs:7\n\n### Static 类（2 个）\n- `LogService`（public static）— LogService.cs:6\n- `Cache`（internal static，嵌套于 NotificationService 内）— NotificationService.cs:41\n\n### 既非 sealed 也非 static 的类\n- `Order` — OrderService.cs:40（普通 public class）\n\n仓库中所有类声明共 14 个，其中 sealed 11 个、static 2 个、普通 1 个。"
+    }
+  ],
+  "aggregates": {
+    "flash-only": {
+      "tasks": 1,
+      "passRate": 1,
+      "totalCost": 0.0042,
+      "costKnownAll": false,
+      "avgMs": 2790,
+      "totalTokensIn": 2676,
+      "totalTokensOut": 696
+    },
+    "pro-only": {
+      "tasks": 1,
+      "passRate": 0,
+      "totalCost": 0.0127,
+      "costKnownAll": false,
+      "avgMs": 4032,
+      "totalTokensIn": 2793,
+      "totalTokensOut": 625
+    },
+    "routed": {
+      "tasks": 1,
+      "passRate": 1,
+      "totalCost": 0.0042,
+      "costKnownAll": false,
+      "avgMs": 2150,
+      "totalTokensIn": 2984,
+      "totalTokensOut": 540
+    }
+  }
+}

@@ -14,8 +14,10 @@ const getArg = (name, dflt) => {
   return i >= 0 && args[i + 1] ? args[i + 1] : dflt;
 };
 const limit = parseInt(getArg("--limit", "0"), 10);
+const onlyTask = getArg("--task", null);
 const modes = (getArg("--modes", "flash-only,pro-only,routed")).split(",").map(s => s.trim());
-const outPath = getArg("--out", path.join(__dirname, "results", "results-" + new Date().toISOString().slice(0, 10) + ".json"));
+const ts = new Date().toISOString().slice(0, 19).replace(/[T:]/g, "-");
+const outPath = getArg("--out", path.join(__dirname, "results", "results-" + ts + ".json"));
 
 // ---------- 模型引用 ----------
 function resolve(ref) {
@@ -240,7 +242,8 @@ const BENCH_REPO = process.env.BENCH_REPO ? path.resolve(process.env.BENCH_REPO)
 const tasksDir = path.join(__dirname, "tasks");
 let tasks = fs.readdirSync(tasksDir).filter(f => f.endsWith(".json")).map(f => JSON.parse(fs.readFileSync(path.join(tasksDir, f), "utf-8")));
 for (const t of tasks) t.root = BENCH_REPO;
-if (limit > 0) tasks = tasks.slice(0, limit);
+if (onlyTask) tasks = tasks.filter(t => t.id === onlyTask);
+  if (limit > 0) tasks = tasks.slice(0, limit);
 
 const results = { generatedAt: new Date().toISOString(), modes, tasks: [] };
 for (const mode of modes) {
