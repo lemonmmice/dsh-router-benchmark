@@ -1,0 +1,16 @@
+{
+  "id": "23-event-list",
+  "title": "查找全部事件定义",
+  "category": "检索",
+  "tier": 1,
+  "root": "samples",
+  "prompt": "你是只读代码检索助手。在示例代码库中：找出所有声明了 event 的地方（类名 + 事件名）。",
+  "gold": [
+    "TimerService",
+    "NotificationService",
+    "ChartRenderer",
+    "WebSocketClient"
+  ],
+  "minGold": 3,
+  "rubric": "至少 4 个事件来源"
+}

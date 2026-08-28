@@ -1,0 +1,15 @@
+{
+  "id": "30-ws-review",
+  "title": "评审 WebSocket 客户端",
+  "category": "评审",
+  "tier": 3,
+  "root": "samples",
+  "prompt": "你是独立代码评审专家。评审示例代码库中 WebSocketClient 的断线重连与线程安全：指出至少两个风险并给改进建议。",
+  "gold": [
+    "重连",
+    "连接",
+    "ReconnectIntervalMs"
+  ],
+  "minGold": 2,
+  "rubric": "重连/线程安全风险"
+}

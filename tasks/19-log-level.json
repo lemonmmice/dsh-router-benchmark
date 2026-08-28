@@ -1,0 +1,17 @@
+{
+  "id": "19-log-level",
+  "title": "日志服务的级别与滚动",
+  "category": "检索",
+  "tier": 1,
+  "root": "samples",
+  "prompt": "你是只读代码检索助手。在示例代码库中：LogService 定义了几个日志级别？默认最小级别是什么？日志文件滚动大小是多少？",
+  "gold": [
+    "Debug",
+    "Info",
+    "Warn",
+    "Error",
+    "MaxLogFileSizeBytes"
+  ],
+  "minGold": 3,
+  "rubric": "四级 + 默认级别 + 滚动大小"
+}

@@ -1,0 +1,14 @@
+{
+  "id": "24-order-const",
+  "title": "定位订单服务的常量",
+  "category": "检索",
+  "tier": 1,
+  "root": "samples",
+  "prompt": "你是只读代码检索助手。在示例代码库中：OrderService 里单笔订单最大条目数常量叫什么？值是多少？",
+  "gold": [
+    "MaxItemsPerOrder",
+    "20"
+  ],
+  "minGold": 2,
+  "rubric": "常量名 + 值 20"
+}

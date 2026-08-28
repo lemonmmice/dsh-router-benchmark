@@ -1,0 +1,16 @@
+{
+  "id": "22-ws-client",
+  "title": "WebSocket 客户端参数",
+  "category": "检索",
+  "tier": 1,
+  "root": "samples",
+  "prompt": "你是只读代码检索助手。在示例代码库中：WebSocketClient 的重连间隔和接收缓冲区大小是多少？",
+  "gold": [
+    "ReconnectIntervalMs",
+    "3000",
+    "ReceiveBufferSize",
+    "8192"
+  ],
+  "minGold": 3,
+  "rubric": "重连 3000ms + 缓冲 8192"
+}

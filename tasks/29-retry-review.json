@@ -1,0 +1,15 @@
+{
+  "id": "29-retry-review",
+  "title": "评审重试策略风险",
+  "category": "评审",
+  "tier": 3,
+  "root": "samples",
+  "prompt": "你是独立代码评审专家。评审示例代码库中 RetryPolicy 的重试逻辑：指出至少两个风险（重试覆盖范围、退避时长、无上限异常等）并给改进建议。",
+  "gold": [
+    "指数",
+    "重试",
+    "MaxRetryCount"
+  ],
+  "minGold": 2,
+  "rubric": "风险点 + 改进建议"
+}

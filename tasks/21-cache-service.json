@@ -1,0 +1,15 @@
+{
+  "id": "21-cache-service",
+  "title": "缓存服务的键规则",
+  "category": "检索",
+  "tier": 1,
+  "root": "samples",
+  "prompt": "你是只读代码检索助手。在示例代码库中：CacheService 的缓存键前缀和默认 TTL 是多少？用什么数据结构存储？",
+  "gold": [
+    "app:cache:",
+    "DefaultTtlSeconds",
+    "ConcurrentDictionary"
+  ],
+  "minGold": 2,
+  "rubric": "键前缀 + TTL + 线程安全字典"
+}

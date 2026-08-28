@@ -1,0 +1,16 @@
+{
+  "id": "20-retry-policy",
+  "title": "重试策略的参数",
+  "category": "检索",
+  "tier": 1,
+  "root": "samples",
+  "prompt": "你是只读代码检索助手。在示例代码库中：RetryPolicy 的最大重试次数和基础延迟分别是多少？退避策略是什么？",
+  "gold": [
+    "MaxRetryCount",
+    "3",
+    "BaseDelayMs",
+    "200"
+  ],
+  "minGold": 3,
+  "rubric": "重试上限 3 + 基础延迟 200 + 指数退避"
+}

@@ -1,0 +1,16 @@
+{
+  "id": "16-order-service",
+  "title": "定位订单服务的方法与状态",
+  "category": "检索",
+  "tier": 1,
+  "root": "samples",
+  "prompt": "你是只读代码检索助手。在示例代码库中：OrderService 提供哪些公开方法？订单状态枚举有哪些值？输出清单与文件:行号。",
+  "gold": [
+    "CreateOrder",
+    "SubmitOrder",
+    "CancelOrder",
+    "OrderStatus"
+  ],
+  "minGold": 3,
+  "rubric": "三个方法 + 状态枚举"
+}

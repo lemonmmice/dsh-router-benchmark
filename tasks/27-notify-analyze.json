@@ -1,0 +1,15 @@
+{
+  "id": "27-notify-analyze",
+  "title": "分析通知服务逻辑",
+  "category": "分析",
+  "tier": 2,
+  "root": "samples",
+  "prompt": "你是只读代码分析助手。在示例代码库中：NotificationService 收到消息后除了触发事件还做了什么？未读数缓存如何更新？",
+  "gold": [
+    "GetUnreadCount",
+    "SetUnreadCount",
+    "MessageReceived"
+  ],
+  "minGold": 2,
+  "rubric": "缓存更新 + 事件"
+}

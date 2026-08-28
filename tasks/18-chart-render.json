@@ -1,0 +1,15 @@
+{
+  "id": "18-chart-render",
+  "title": "图表渲染器的性能常量",
+  "category": "检索",
+  "tier": 1,
+  "root": "samples",
+  "prompt": "你是只读代码检索助手。在示例代码库中：ChartRenderer 定义了哪些性能相关的常量？分别是什么值？",
+  "gold": [
+    "MaxPointsPerFrame",
+    "DownsampleThreshold",
+    "50000"
+  ],
+  "minGold": 2,
+  "rubric": "两个常量 + 阈值"
+}

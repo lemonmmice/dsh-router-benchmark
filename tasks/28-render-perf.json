@@ -1,0 +1,15 @@
+{
+  "id": "28-render-perf",
+  "title": "分析图表渲染性能策略",
+  "category": "分析",
+  "tier": 2,
+  "root": "samples",
+  "prompt": "你是只读代码分析助手。在示例代码库中：ChartRenderer 在大数据量下如何控制渲染开销？抽稀策略是什么？",
+  "gold": [
+    "Downsample",
+    "抽稀",
+    "MaxPointsPerFrame"
+  ],
+  "minGold": 2,
+  "rubric": "抽稀策略 + 上限常量"
+}

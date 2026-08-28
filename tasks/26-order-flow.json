@@ -1,0 +1,16 @@
+{
+  "id": "26-order-flow",
+  "title": "分析订单状态机",
+  "category": "分析",
+  "tier": 2,
+  "root": "samples",
+  "prompt": "你是只读代码分析助手。在示例代码库中：分析 OrderService 的状态流转——哪些状态转换被允许/禁止？CancelOrder 在什么状态下失败？",
+  "gold": [
+    "Draft",
+    "Submitted",
+    "Paid",
+    "Cancelled"
+  ],
+  "minGold": 3,
+  "rubric": "四状态 + 禁止规则"
+}
