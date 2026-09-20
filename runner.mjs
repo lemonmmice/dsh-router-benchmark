@@ -141,6 +141,9 @@ async function chatOnce(ref, messages, opts = {}) {
       message: data.choices?.[0]?.message ?? { content: "" },
       tokensIn: data.usage?.prompt_tokens ?? null,
       tokensOut: data.usage?.completion_tokens ?? null,
+      // DeepSeek 原生字段：上下文缓存命中/未命中的输入 token（其他供应商可能不返回）
+      cacheHit: data.usage?.prompt_cache_hit_tokens ?? null,
+      cacheMiss: data.usage?.prompt_cache_miss_tokens ?? null,
       ms: Date.now() - t0
     };
   } finally { clearTimeout(timer); }
@@ -153,15 +156,16 @@ async function agentLoop(ref, task, opts = {}) {
     { role: "system", content: sys + "\n仓库根目录: " + task.root + "\n任务类型: " + task.category },
     { role: "user", content: task.prompt }
   ];
-  let totalIn = 0, totalOut = 0, lastMs = 0;
+  let totalIn = 0, totalOut = 0, totalHit = 0, totalMiss = 0, cacheSeen = false, lastMs = 0;
   for (let round = 1; round <= (opts.maxRounds ?? 4); round++) {
     const res = await chatOnce(ref, messages, { tools });
     totalIn += res.tokensIn ?? 0; totalOut += res.tokensOut ?? 0; lastMs = Math.max(lastMs, res.ms);
+    if (res.cacheHit != null || res.cacheMiss != null) { cacheSeen = true; totalHit += res.cacheHit ?? 0; totalMiss += res.cacheMiss ?? 0; }
     const msg = res.message;
     messages.push(msg);
     const calls = msg.tool_calls ?? [];
     if (calls.length === 0) {
-      return { text: msg.content ?? "", tokensIn: totalIn, tokensOut: totalOut, ms: lastMs, rounds: round - 1 };
+      return { text: msg.content ?? "", tokensIn: totalIn, tokensOut: totalOut, cacheHit: cacheSeen ? totalHit : null, cacheMiss: cacheSeen ? totalMiss : null, ms: lastMs, rounds: round - 1 };
     }
     let idx = 0;
     for (const c of calls) {
@@ -172,7 +176,7 @@ async function agentLoop(ref, task, opts = {}) {
     }
   }
   const last = messages[messages.length - 1];
-  return { text: (last.content ?? "(达到轮次上限，未给出最终答案)"), tokensIn: totalIn, tokensOut: totalOut, ms: lastMs, rounds: opts.maxRounds };
+  return { text: (last.content ?? "(达到轮次上限，未给出最终答案)"), tokensIn: totalIn, tokensOut: totalOut, cacheHit: cacheSeen ? totalHit : null, cacheMiss: cacheSeen ? totalMiss : null, ms: lastMs, rounds: opts.maxRounds };
 }
 
 // ---------- 判分 ----------
@@ -183,10 +187,19 @@ function judge(text, task) {
   return { pass: hits.length >= minGold, score: +(score).toFixed(2), hits, missed: task.gold.filter(g => !hits.includes(g)), minGold };
 }
 function costOf(ref, res) {
-  if (res.tokensIn == null || res.tokensOut == null) return { cost: null, known: false };
+  if (res.tokensIn == null || res.tokensOut == null) return { cost: null, flatCost: null, costKnown: false, cacheKnown: false };
   const p = resolve(ref).price;
-  if (p.in == null || p.out == null) return { cost: null, known: false };
-  return { cost: (res.tokensIn / 1e6) * p.in + (res.tokensOut / 1e6) * p.out, known: true };
+  if (p.in == null || p.out == null) return { cost: null, flatCost: null, costKnown: false, cacheKnown: false };
+  // 平铺口径（旧模型）：输入价不分缓存命中。保留它是为了让历史数据可对照，
+  // 也为了量化"忽略缓存会把成本高估多少"。
+  const flat = (res.tokensIn / 1e6) * p.in + (res.tokensOut / 1e6) * p.out;
+  // 分层口径：命中部分按 cacheIn，未命中部分按 in。
+  // 缺 cacheIn、或供应商不返回 hit/miss 时退回平铺，并用 cacheKnown 如实标注（不假装省了钱）。
+  const hasCache = p.cacheIn != null && res.cacheHit != null && res.cacheMiss != null;
+  const cost = hasCache
+    ? (res.cacheHit / 1e6) * p.cacheIn + (res.cacheMiss / 1e6) * p.in + (res.tokensOut / 1e6) * p.out
+    : flat;
+  return { cost, flatCost: flat, costKnown: true, cacheKnown: hasCache };
 }
 
 // ---------- 三种模式 ----------
@@ -209,15 +222,27 @@ async function runRouted(task, refs, synthRef) {
   ]);
   const parentText = parentRes.message?.content ?? "";
   const j = judge(parentText, task);
-  let cost = null, known = true;
-  for (const s of ok) { const c = costOf(s.ref, s.res); if (!c.known) known = false; cost = (cost ?? 0) + (c.cost ?? 0); }
-  const pc = costOf(synthRef, { tokensIn: parentRes.tokensIn, tokensOut: parentRes.tokensOut });
-  if (!pc.known) known = false;
+  let cost = null, flatCost = null, known = true, cacheKnown = true;
+  for (const s of ok) {
+    const c = costOf(s.ref, s.res);
+    if (!c.costKnown) known = false;
+    if (!c.cacheKnown) cacheKnown = false;
+    cost = (cost ?? 0) + (c.cost ?? 0);
+    flatCost = (flatCost ?? 0) + (c.flatCost ?? 0);
+  }
+  const pc = costOf(synthRef, { tokensIn: parentRes.tokensIn, tokensOut: parentRes.tokensOut, cacheHit: parentRes.cacheHit, cacheMiss: parentRes.cacheMiss });
+  if (!pc.costKnown) known = false;
+  if (!pc.cacheKnown) cacheKnown = false;
   cost = (cost ?? 0) + (pc.cost ?? 0);
+  flatCost = (flatCost ?? 0) + (pc.flatCost ?? 0);
+  const sumHit = ok.reduce((a, s) => a + (s.res.cacheHit ?? 0), 0) + (parentRes.cacheHit ?? 0);
+  const sumMiss = ok.reduce((a, s) => a + (s.res.cacheMiss ?? 0), 0) + (parentRes.cacheMiss ?? 0);
   return {
-    ...j, cost, costKnown: known, text: parentText,
+    ...j, cost, flatCost, costKnown: known, cacheKnown, text: parentText,
     tokensIn: ok.reduce((a, s) => a + (s.res.tokensIn ?? 0), 0) + (parentRes.tokensIn ?? 0),
     tokensOut: ok.reduce((a, s) => a + (s.res.tokensOut ?? 0), 0) + (parentRes.tokensOut ?? 0),
+    cacheHit: cacheKnown ? sumHit : null,
+    cacheMiss: cacheKnown ? sumMiss : null,
     ms: Math.max(...ok.map(s => s.res.ms), parentRes.ms),
     models: [...ok.map(s => resolve(s.ref).display), resolve(synthRef).display + "(综合)"],
     detail: [...ok.map(s => ({ model: resolve(s.ref).display, pass: judge(s.res.text, task).pass, rounds: s.res.rounds, ms: s.res.ms })), ...specialist.filter(s => s.error).map(s => ({ model: resolve(s.ref).display, error: s.error }))]
@@ -255,6 +280,8 @@ for (const mode of modes) {
         taskId: task.id, title: task.title, category: task.category, tier: task.tier, mode,
         pass: r.pass, score: r.score, hits: r.hits, missed: r.missed,
         tokensIn: r.tokensIn, tokensOut: r.tokensOut, cost: r.cost == null ? null : +r.cost.toFixed(4),
+        flatCost: r.flatCost == null ? null : +r.flatCost.toFixed(4),
+        cacheHit: r.cacheHit ?? null, cacheMiss: r.cacheMiss ?? null, cacheKnown: r.cacheKnown ?? false,
         costKnown: r.costKnown, ms: r.ms, models: r.models, detail: r.detail ?? [],
         text: r.text.slice(0, 2000)
       };
@@ -279,7 +306,20 @@ for (const mode of modes) {
     costKnownAll: rows.every(r => r.costKnown),
     avgMs: rows.length ? Math.round(rows.reduce((a, r) => a + r.ms, 0) / rows.length) : null,
     totalTokensIn: rows.reduce((a, r) => a + (r.tokensIn ?? 0), 0),
-    totalTokensOut: rows.reduce((a, r) => a + (r.tokensOut ?? 0), 0)
+    totalTokensOut: rows.reduce((a, r) => a + (r.tokensOut ?? 0), 0),
+    // 上下文缓存统计。拿不到 hit/miss 时如实置 null —— 不把"没采到"写成"0 次命中"。
+    totalCacheHit: rows.some(r => r.cacheHit != null) ? rows.reduce((a, r) => a + (r.cacheHit ?? 0), 0) : null,
+    totalCacheMiss: rows.some(r => r.cacheMiss != null) ? rows.reduce((a, r) => a + (r.cacheMiss ?? 0), 0) : null,
+    cacheHitRate: (() => {
+      const h = rows.reduce((a, r) => a + (r.cacheHit ?? 0), 0), m = rows.reduce((a, r) => a + (r.cacheMiss ?? 0), 0);
+      return (h + m) > 0 ? +(h / (h + m)).toFixed(3) : null;
+    })(),
+    totalFlatCost: rows.every(r => r.flatCost != null) ? +rows.reduce((a, r) => a + r.flatCost, 0).toFixed(4) : null,
+    costSavedByCache: (() => {
+      if (!rows.every(r => r.cost != null && r.flatCost != null)) return null;
+      const f = rows.reduce((a, r) => a + r.flatCost, 0), c = rows.reduce((a, r) => a + r.cost, 0);
+      return f > 0 ? +(f - c).toFixed(4) : null;
+    })()
   };
 }
 results.aggregates = agg;

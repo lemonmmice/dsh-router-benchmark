@@ -1,5 +1,5 @@
 {
-  "note": "价格单位：元/百万 token（输入, 输出）。deepseek/gpt 价格按 new-api 中转站公开比率换算（quota_per_unit=500000, 汇率7.3, 1元≈68493 quota）；kimi 为官方美元参考价×7.25；minimax 为官方价；mimo 2026-05 降价后无静态价格页，计 unknown。跑之前可按账单核对修正。",
+  "note": "价格单位：元/百万 token。in=缓存未命中输入价，cacheIn=缓存命中输入价，out=输出价。cacheIn 按 DeepSeek 官方定价的命中/未命中比率折算（flash 1.04×0.003/0.150≈0.021，pro 3.13×0.022/0.660≈0.104），来源 api-docs.deepseek.com/quick_start/pricing（2026-09-20 读取）；其余供应商未确认支持上下文缓存，记 null 并在计费时退回平铺。deepseek/gpt 价格按 new-api 中转站公开比率换算（quota_per_unit=500000, 汇率7.3, 1元≈68493 quota）；kimi 为官方美元参考价×7.25；minimax 为官方价；mimo 2026-05 降价后无静态价格页，计 unknown。跑之前可按账单核对修正。",
   "providers": {
     "deepseek": {
       "displayName": "DeepSeek 中转",
@@ -12,10 +12,12 @@
       "prices": {
         "flash": {
           "in": 1.04,
+          "cacheIn": 0.021,
           "out": 2.09
         },
         "pro": {
           "in": 3.13,
+          "cacheIn": 0.104,
           "out": 6.26
         }
       },
@@ -31,6 +33,7 @@
       "prices": {
         "mimo": {
           "in": null,
+          "cacheIn": null,
           "out": null
         }
       },
@@ -49,6 +52,7 @@
       "prices": {
         "kimi": {
           "in": 21.75,
+          "cacheIn": null,
           "out": 108.75
         }
       },
@@ -64,6 +68,7 @@
       "prices": {
         "gpt": {
           "in": 5.84,
+          "cacheIn": null,
           "out": 46.72
         }
       },
@@ -81,6 +86,7 @@
       "prices": {
         "minimax": {
           "in": 0.3,
+          "cacheIn": null,
           "out": 1.2
         }
       },
